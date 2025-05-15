@@ -2,9 +2,10 @@ package com.shopsphere.shopsphere_web.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Users")
+@Table(name = "user")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -12,7 +13,11 @@ import lombok.*;
 @Builder
 public class User {
     @Id
+    @Column(name = "user_id", nullable = false, unique = true)
     private String id;
+
+    @Column(nullable = false)
+    private String email;
 
     @Column(nullable = false)
     private String password;
@@ -24,4 +29,10 @@ public class User {
     private String phoneNumber;
 
     private String address;
+
+    @Column(nullable = false)
+    private String role;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 }
