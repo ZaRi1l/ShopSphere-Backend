@@ -15,6 +15,7 @@ public class UserService {
 
     public User register(UserDTO userDTO) {
         User user = User.builder()
+                .id(userDTO.getId())
                 .name(userDTO.getName())
                 .password(passwordEncoder.encode(userDTO.getPassword()))
                 .phoneNumber(userDTO.getPhoneNumber())
@@ -23,7 +24,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User authenticate(Long id, String password) {
+    public User authenticate(String id, String password) {
         return userRepository.findById(id)
                 .filter(user -> passwordEncoder.matches(password, user.getPassword()))
                 .orElse(null);
