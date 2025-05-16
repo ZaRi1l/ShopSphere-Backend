@@ -15,6 +15,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+
+import com.shopsphere.shopsphere_web.jwtutil.JwtUtil;
 import org.springframework.http.HttpHeaders;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +27,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RestTemplate restTemplate = new RestTemplate();
+    private final JwtUtil jwtUtil;
 
     @Value("${kakao.restapi.key}")
     private String kakaoRestApiKey;
@@ -33,15 +36,21 @@ public class UserService {
     @Value("${kakao.client-secret}")
     private String kakaoClientSecret;
 
-    public User register(UserDTO userDTO) {
+    public UserDTO.Response register(UserDTO.RegisterRequest registerRequestDTO) {
         User user = User.builder()
-                .id(userDTO.getId())
-                .name(userDTO.getName())
-                .password(passwordEncoder.encode(userDTO.getPassword()))
-                .phoneNumber(userDTO.getPhoneNumber())
-                .address(userDTO.getAddress())
+                .id(registerRequestDTO.getId())
+                .name(registerRequestDTO.getName())
+                .password(passwordEncoder.encode(registerRequestDTO.getPassword()))
+                .phoneNumber(registerRequestDTO.getPhoneNumber())
+                .address(registerRequestDTO.getAddress())
                 .build();
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        return UserDTO.Response.builder()
+                .id(savedUser.getId())
+                .name(savedUser.getName())
+                .phoneNumber(savedUser.getPhoneNumber())
+                .address(savedUser.getAddress())
+                .build();
     }
 
     public User authenticate(String id, String password) {
@@ -115,6 +124,8 @@ public class UserService {
         }
     }
 
-    // JWT 토큰 생성 메서드 (별도 구현 필요)
-    // public String createJwtToken(String userId) { ... }
+    // JWT 토큰 생성 메서드
+    public String createJwtToken(String userId) {
+        return jwtUtil.createToken(userId);
+    }
 }

@@ -2,10 +2,15 @@ package com.shopsphere.shopsphere_web.controller;
 
 import com.shopsphere.shopsphere_web.dto.UserDTO;
 import com.shopsphere.shopsphere_web.entity.User;
+import com.shopsphere.shopsphere_web.jwtutil.JwtUtil;
 import com.shopsphere.shopsphere_web.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth") // 기존 로그인 API 경로 (필요에 따라 수정)
@@ -13,6 +18,9 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final UserService userService;
+
+    @Autowired // JwtUtil 의존성 주입
+    private JwtUtil jwtUtil;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserDTO userDTO) {
@@ -32,10 +40,14 @@ public class AuthController {
         User user = userService.processKakaoLogin(accessToken);
 
         if (user != null) {
-            // 3. 로그인 성공 처리 (JWT 토큰 생성 및 반환 등)
-            return ResponseEntity.ok(user); // 예시: User 객체 반환
+            String token = jwtUtil.createToken(user.getId());
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("userId", user.getId());
+            response.put("name", user.getName());
+            return ResponseEntity.ok(response);
         } else {
-            return ResponseEntity.status(401).body("{\"message\": \"Kakao login failed\"}");
+            return ResponseEntity.status(401).body(Map.of("message", "Kakao login failed"));
         }
     }
 }
