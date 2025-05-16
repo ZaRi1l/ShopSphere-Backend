@@ -17,6 +17,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
 
+    @Autowired
     private final UserService userService;
 
     @Autowired // JwtUtil 의존성 주입
@@ -31,23 +32,23 @@ public class AuthController {
         return ResponseEntity.status(401).body("{\"message\": \"Invalid ID or password\"}");
     }
 
-    @GetMapping("/oauth/kakao/callback")
-    public ResponseEntity<?> kakaoLoginCallback(@RequestParam("code") String code) {
-        // 1. 인가 코드로 카카오 Access Token 요청
-        String accessToken = userService.getKakaoAccessToken(code);
+    // @GetMapping("/oauth/kakao/callback")
+    // public ResponseEntity<?> kakaoLoginCallback(@RequestParam("code") String code) {
+    //     // 1. 인가 코드로 카카오 Access Token 요청
+    //     String accessToken = userService.getKakaoAccessToken(code);
 
-        // 2. Access Token으로 카카오 사용자 정보 요청 및 처리
-        User user = userService.processKakaoLogin(accessToken);
+    //     // 2. Access Token으로 카카오 사용자 정보 요청 및 처리
+    //     User user = userService.processKakaoLogin(accessToken);
 
-        if (user != null) {
-            String token = jwtUtil.createToken(user.getId());
-            Map<String, Object> response = new HashMap<>();
-            response.put("token", token);
-            response.put("userId", user.getId());
-            response.put("name", user.getName());
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(401).body(Map.of("message", "Kakao login failed"));
-        }
-    }
+    //     if (user != null) {
+    //         String token = jwtUtil.createToken(user.getId());
+    //         Map<String, Object> response = new HashMap<>();
+    //         response.put("token", token);
+    //         response.put("userId", user.getId());
+    //         response.put("name", user.getName());
+    //         return ResponseEntity.ok(response);
+    //     } else {
+    //         return ResponseEntity.status(401).body(Map.of("message", "Kakao login failed"));
+    //     }
+    // }
 }

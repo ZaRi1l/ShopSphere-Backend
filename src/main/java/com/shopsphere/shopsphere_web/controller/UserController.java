@@ -15,9 +15,16 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<UserDTO.Response> register(@RequestBody UserDTO.RegisterRequest userDTO) {
+    try {
+        System.out.println("--------------register inner");
         UserDTO.Response user = userService.register(userDTO);
         return ResponseEntity.ok(user);
+    } catch (RuntimeException e) {
+        System.out.println("--------------error");
+        e.printStackTrace(); // ✅ 예외 로그를 출력해서 원인 파악 가능하게
+        return ResponseEntity.badRequest().body(new UserDTO.Response());
     }
+}
 
     @PostMapping("/login")
     public ResponseEntity<UserDTO.Response> login(@RequestBody UserDTO.LoginRequest loginRequestDTO) {

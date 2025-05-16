@@ -20,12 +20,13 @@ public class UserDTO {
 
     // Request DTOs
     @Data
-    public static class RegisterRequest {       // 나중에 이메일 추가하기
+    public static class RegisterRequest {      
         private String id;
         private String password;
         private String name;
         private String phoneNumber;
         private String address;
+        private String email;
     }
 
     @Data
@@ -46,5 +47,13 @@ public class UserDTO {
         private String phoneNumber;
         private String address;
         private String role;
+    }
+    
+    // Update Request DTO
+    @Data
+    public static class UpdateRequest {
+        private String name;
+        private String email;
+        private String phoneNumber;
     }
 }
