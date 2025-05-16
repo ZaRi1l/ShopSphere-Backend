@@ -49,11 +49,22 @@ public class UserDTO {
         private String role;
     }
     
-    // Update Request DTO
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class UpdateRequest {
-        private String name;
-        private String email;
-        private String phoneNumber;
-    }
+    private String name;
+    private String email;
+    private String phoneNumber;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public static class PasswordUpdateRequest {
+    private String currentPassword;
+    private String newPassword;
+}
+
+
 }
