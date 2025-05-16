@@ -1,5 +1,6 @@
 package com.shopsphere.shopsphere_web.dto;
 
+import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -32,6 +33,7 @@ public class UserDTO {
 
     // Response DTOs
     @Data
+    @Builder
     public static class Response {
         private String id;
         private String email;
