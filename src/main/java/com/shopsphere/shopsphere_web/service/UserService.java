@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import java.util.Map;
 import java.util.Optional;
@@ -24,6 +24,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
+    @Autowired
     private final PasswordEncoder passwordEncoder;
     private final RestTemplate restTemplate = new RestTemplate();
     
@@ -36,7 +37,6 @@ public class UserService {
 
     public UserDTO.Response register(UserDTO.RegisterRequest userDTO) {
     try {
-        System.out.println("--------------request complete");
         User user = User.builder()
                 .id(userDTO.getId())
                 .name(userDTO.getName())
@@ -48,7 +48,6 @@ public class UserService {
                 .build();
         
         User savedUser = userRepository.save(user);
-        System.out.println("--------------save complete");
 
         // User 객체를 UserDTO.Response로 변환
         UserDTO.Response response = new UserDTO.Response();
@@ -58,8 +57,6 @@ public class UserService {
         response.setPhoneNumber(savedUser.getPhoneNumber());
         response.setAddress(savedUser.getAddress());
         response.setRole(savedUser.getRole());
-
-        System.out.println("--------------response complete");
 
         return response;
     } catch (DataIntegrityViolationException e) {
@@ -142,14 +139,42 @@ public class UserService {
     // JWT 토큰 생성 메서드 (별도 구현 필요)
     // public String createJwtToken(String userId) { ... }
 
-    public User updateUserInfo(String id, UserDTO.UpdateRequest dto) {
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("사용자 없음"));
+    public UserDTO.Response updateUser(String id, UserDTO.UpdateRequest request) {
+        User user = userRepository.findById(id)
+                      .orElseThrow(() -> new RuntimeException("User not found"));
     
-        if (dto.getName() != null) user.setName(dto.getName());
-        if (dto.getEmail() != null) user.setEmail(dto.getEmail());
-        if (dto.getPhoneNumber() != null) user.setPhoneNumber(dto.getPhoneNumber());
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPhoneNumber(request.getPhoneNumber());
     
-        return userRepository.save(user);
+        userRepository.save(user);
+    
+        return UserDTO.Response.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .build();
     }
+
+    public void deleteById(String id) {
+        userRepository.deleteById(id);
+    }
+
+    public void updatePassword(String id, UserDTO.PasswordUpdateRequest request) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+    
+        // 🔐 현재 비밀번호가 일치하지 않으면 예외
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("현재 비밀번호가 일치하지 않습니다.");
+        }
+    
+        // ✅ 비밀번호 일치 → 새 비밀번호로 변경
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+    
+    
     
 }
