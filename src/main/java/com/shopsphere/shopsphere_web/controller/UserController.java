@@ -2,13 +2,14 @@ package com.shopsphere.shopsphere_web.controller;
 
 import com.shopsphere.shopsphere_web.dto.UserDTO;
 import com.shopsphere.shopsphere_web.entity.User;
+
+import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import com.shopsphere.shopsphere_web.service.UserService;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+ 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/users")
@@ -17,13 +18,12 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<UserDTO.Response> register(@RequestBody UserDTO.RegisterRequest userDTO) {
+    public ResponseEntity<?> register(@RequestBody UserDTO.RegisterRequest userDTO) {
         try {
             UserDTO.Response user = userService.register(userDTO);
             return ResponseEntity.ok(user);
         } catch (RuntimeException e) {
-            e.printStackTrace(); // ✅ 예외 로그를 출력해서 원인 파악 가능하게
-            return ResponseEntity.badRequest().body(new UserDTO.Response());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 

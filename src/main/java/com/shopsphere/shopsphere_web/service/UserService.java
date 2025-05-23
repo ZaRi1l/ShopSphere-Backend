@@ -37,6 +37,11 @@ public class UserService {
 
     public UserDTO.Response register(UserDTO.RegisterRequest userDTO) {
     try {
+        Optional<User> existingUser = userRepository.findById(userDTO.getId());
+        if (existingUser.isPresent()) {
+            throw new RuntimeException("이미 아이디가 존재합니다.");
+        }
+
         User user = User.builder()
                 .id(userDTO.getId())
                 .name(userDTO.getName())
