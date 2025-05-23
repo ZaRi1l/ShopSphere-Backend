@@ -29,7 +29,7 @@ public class UserController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
-
+                    
     @PostMapping("/login")
     public ResponseEntity<UserDTO.Response> login(@RequestBody UserDTO.LoginRequest loginRequestDTO) {
         User authenticatedUser = userService.authenticate(loginRequestDTO.getId(), loginRequestDTO.getPassword());
