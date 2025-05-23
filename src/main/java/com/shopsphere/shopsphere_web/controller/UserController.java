@@ -21,7 +21,7 @@ public class UserController {
     public ResponseEntity<?> register(@RequestBody UserDTO.RegisterRequest userDTO) {
         try {
 
-            
+
             
             UserDTO.Response user = userService.register(userDTO);
             return ResponseEntity.ok(user);
