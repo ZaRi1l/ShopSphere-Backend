@@ -22,6 +22,7 @@ public class UserController {
         try {
 
             
+            
             UserDTO.Response user = userService.register(userDTO);
             return ResponseEntity.ok(user);
         } catch (RuntimeException e) {
