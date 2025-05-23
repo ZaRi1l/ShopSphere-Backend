@@ -20,6 +20,8 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody UserDTO.RegisterRequest userDTO) {
         try {
+
+            
             UserDTO.Response user = userService.register(userDTO);
             return ResponseEntity.ok(user);
         } catch (RuntimeException e) {
