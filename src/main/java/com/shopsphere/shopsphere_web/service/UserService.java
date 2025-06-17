@@ -179,7 +179,9 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
-    
-    
+
+    public Optional<User> findById(String id) {
+        return userRepository.findById(id);
+    }
     
 }
