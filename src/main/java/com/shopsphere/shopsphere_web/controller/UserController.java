@@ -74,11 +74,23 @@ public class UserController {
         return ResponseEntity.ok(Map.of("isLoggedIn", false));
     }
 
-    @PatchMapping("/{id}")
-    public ResponseEntity<UserDTO.Response> updateUser(@PathVariable String id,
-            @RequestBody UserDTO.UpdateRequest request) {
+    // @PatchMapping("/{id}")
+    // public ResponseEntity<UserDTO.Response> updateUser(@PathVariable String id,
+    //         @RequestBody UserDTO.UpdateRequest request) {
+    //     try {
+    //         UserDTO.Response updatedUser = userService.updateUser(id, request);
+    //         return ResponseEntity.ok(updatedUser);
+    //     } catch (RuntimeException e) {
+    //         e.printStackTrace();
+    //         return ResponseEntity.badRequest().body(new UserDTO.Response());
+    //     }
+    // }
+
+    @PatchMapping("/update")
+    public ResponseEntity<UserDTO.Response> updateUser(@RequestBody UserDTO.UpdateRequest request, HttpSession session) {
         try {
-            UserDTO.Response updatedUser = userService.updateUser(id, request);
+            String userId = (String) session.getAttribute("userId");
+            UserDTO.Response updatedUser = userService.updateUser(userId, request);
             return ResponseEntity.ok(updatedUser);
         } catch (RuntimeException e) {
             e.printStackTrace();
