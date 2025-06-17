@@ -98,18 +98,19 @@ public class UserController {
         }
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable String id) {
-        userService.deleteById(id); // 서비스에서 삭제 처리
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteUser(HttpSession session) {
+        String userId = (String) session.getAttribute("userId");
+        userService.deleteById(userId); // 서비스에서 삭제 처리
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("/{id}/password")
+    @PatchMapping("/password")
     public ResponseEntity<?> updatePassword(
-            @PathVariable String id,
-            @RequestBody UserDTO.PasswordUpdateRequest request) {
+            @RequestBody UserDTO.PasswordUpdateRequest request, HttpSession session) {
         try {
-            userService.updatePassword(id, request);
+            String userId = (String) session.getAttribute("userId");
+            userService.updatePassword(userId, request);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             // 👇 반드시 메시지를 포함해서 보내야 함
