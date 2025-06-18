@@ -17,7 +17,7 @@ public class ProductCategory {
     @Column(name = "category_id")
     private Integer id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)

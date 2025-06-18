@@ -26,19 +26,19 @@ public class Order {
     @Column(name = "order_date")
     private LocalDateTime orderDate;
 
-    @Column(name = "order_status")
+    @Column(name = "order_status", columnDefinition = "VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String orderStatus;
 
-    @Column(name = "shipping_address", nullable = false)
+    @Column(name = "shipping_address", nullable = false, columnDefinition = "TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String shippingAddress;
 
     @Column(name = "total_amount", nullable = false)
     private Integer totalAmount;
 
-    @Column(name = "payment_method")
+    @Column(name = "payment_method", columnDefinition = "VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String paymentMethod;
 
-    @Column(name = "transaction_id")
+    @Column(name = "transaction_id", columnDefinition = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String transactionId;
 
     @Column(name = "created_at")

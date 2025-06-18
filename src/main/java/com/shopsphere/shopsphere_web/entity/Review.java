@@ -28,6 +28,7 @@ public class Review {
     @Column(nullable = false)
     private Integer rating;
 
+    @Column(columnDefinition = "TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String comment;
 
     @Column(name = "created_at")

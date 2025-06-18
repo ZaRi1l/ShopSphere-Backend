@@ -21,7 +21,7 @@ public class ProductImage {
     @JoinColumn(name = "product_id")
     private Product product;
 
-    @Column(name = "image_url", nullable = false)
+    @Column(name = "image_url", nullable = false, columnDefinition = "VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String imageUrl;
 
     @Column(name = "created_at")
