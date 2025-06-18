@@ -28,7 +28,6 @@ public class ProductController {
 
     @GetMapping("/{productId}")
     public ResponseEntity<ProductDTO.Response> getProduct(@PathVariable Integer productId) {
-        System.out.println("-------------------- get 호출 상품");
         ProductDTO.Response response = productService.getProduct(productId);
         if (response != null) {
             return ResponseEntity.ok(response);
