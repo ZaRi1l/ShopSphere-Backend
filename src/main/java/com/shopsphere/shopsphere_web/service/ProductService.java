@@ -122,6 +122,7 @@ public class ProductService {
         response.setImageUrl(product.getImageUrl());
         response.setCreatedAt(product.getCreatedAt());
         response.setSalesVolume(product.getSalesVolume());
+        response.setSeller(convertToUserResponse(product.getUser()));
 
         // Convert options
         List<ProductOptionDTO.Response> optionResponses = optionRepository.findByProduct_Id(product.getId())
@@ -158,6 +159,9 @@ public class ProductService {
     }
 
     private ProductCategoryDTO.Response convertToCategoryResponse(ProductCategory category) {
+        if (category == null) {
+            return null;
+        }
         ProductCategoryDTO.Response response = new ProductCategoryDTO.Response();
         response.setId(category.getId());
         response.setName(category.getName());
@@ -165,6 +169,20 @@ public class ProductService {
         if (category.getParent() != null) {
             response.setParent(convertToCategoryResponse(category.getParent()));
         }
+        return response;
+    }
+    
+    private com.shopsphere.shopsphere_web.dto.UserDTO.Response convertToUserResponse(User user) {
+        if (user == null) {
+            return null;
+        }
+        com.shopsphere.shopsphere_web.dto.UserDTO.Response response = new com.shopsphere.shopsphere_web.dto.UserDTO.Response();
+        response.setId(user.getId());
+        response.setEmail(user.getEmail());
+        response.setName(user.getName());
+        response.setPhoneNumber(user.getPhoneNumber());
+        response.setAddress(user.getAddress());
+        response.setRole(user.getRole());
         return response;
     }
 }
