@@ -28,8 +28,36 @@ public class OrderService {
     @Transactional
     public OrderDTO.Response createOrder(String userId, OrderDTO.CreateRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
 
+        // 주문 생성 전 모든 상품의 재고 확인
+        for (OrderItemDTO.CreateRequest itemRequest : request.getItems()) {
+            Product product = productRepository.findById(itemRequest.getProductId())
+                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. ID: " + itemRequest.getProductId()));
+
+            // 상품 재고 확인
+            if (product.getStockQuantity() < itemRequest.getQuantity()) {
+                throw new IllegalArgumentException(String.format(
+                    "[%s] 상품의 재고가 부족합니다. 요청 수량: %d, 현재 재고: %d", 
+                    product.getName(), itemRequest.getQuantity(), product.getStockQuantity()
+                ));
+            }
+
+            // 옵션 재고 확인
+            if (itemRequest.getOptionId() != null) {
+                ProductOption option = productOptionRepository.findById(itemRequest.getOptionId())
+                        .orElseThrow(() -> new IllegalArgumentException("상품 옵션을 찾을 수 없습니다. ID: " + itemRequest.getOptionId()));
+                        
+                if (option.getStockQuantity() < itemRequest.getQuantity()) {
+                    throw new IllegalArgumentException(String.format(
+                        "[%s - %s] 옵션의 재고가 부족합니다. 요청 수량: %d, 현재 재고: %d", 
+                        product.getName(), option.getSize(), itemRequest.getQuantity(), option.getStockQuantity()
+                    ));
+                }
+            }
+        }
+
+        // 모든 재고 확인 후 주문 생성
         Order order = Order.builder()
                 .user(user)
                 .orderDate(LocalDateTime.now())
@@ -41,33 +69,29 @@ public class OrderService {
 
         int totalAmount = 0;
 
-        // Create order items
+        // 주문 상품 생성 및 재고 업데이트
         for (OrderItemDTO.CreateRequest itemRequest : request.getItems()) {
             Product product = productRepository.findById(itemRequest.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+                    .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. ID: " + itemRequest.getProductId()));
 
-            // Validate and update product stock
-            if (product.getStockQuantity() < itemRequest.getQuantity()) {
-                throw new IllegalArgumentException("Insufficient stock for product: " + product.getName());
-            }
+            // 상품 재고 업데이트
             product.setStockQuantity(product.getStockQuantity() - itemRequest.getQuantity());
             product.setSalesVolume(product.getSalesVolume() + itemRequest.getQuantity());
 
-            // Calculate price including option price if present
+            // 가격 계산 (옵션 가격 포함)
             int itemPrice = product.getPrice();
             ProductOption option = null;
+            
             if (itemRequest.getOptionId() != null) {
                 option = productOptionRepository.findById(itemRequest.getOptionId())
-                        .orElseThrow(() -> new IllegalArgumentException("Product option not found"));
-                itemPrice += option.getAdditionalPrice();
-
-                // Update option stock
-                if (option.getStockQuantity() < itemRequest.getQuantity()) {
-                    throw new IllegalArgumentException("Insufficient stock for option: " + option.getSize());
-                }
+                        .orElseThrow(() -> new IllegalArgumentException("상품 옵션을 찾을 수 없습니다. ID: " + itemRequest.getOptionId()));
+                
+                // 옵션 재고 업데이트
                 option.setStockQuantity(option.getStockQuantity() - itemRequest.getQuantity());
+                itemPrice += option.getAdditionalPrice();
             }
 
+            // 주문 상품 생성
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
                     .product(product)

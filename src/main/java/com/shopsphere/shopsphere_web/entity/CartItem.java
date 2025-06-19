@@ -30,4 +30,8 @@ public class CartItem {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "option_id")
+    private ProductOption productOption;
 }
