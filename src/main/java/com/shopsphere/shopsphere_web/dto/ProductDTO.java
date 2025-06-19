@@ -59,5 +59,7 @@ public class ProductDTO {
         private List<ProductOptionDTO.Response> options;
         private List<ProductImageDTO.Response> images;
         private Double averageRating;
+        private Long reviewCount;     // 리뷰 개수
+        private Long interestCount;   // 관심(찜) 개수 - 이 부분은 백엔드 구현에 따라 달라질 수 있습니다.
     }
 }

@@ -3,13 +3,13 @@ package com.shopsphere.shopsphere_web.controller;
 import com.shopsphere.shopsphere_web.dto.ProductDTO;
 import com.shopsphere.shopsphere_web.service.ProductService;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpSession;
 import java.util.Map;
-
 import java.util.List;
 
 @RestController
@@ -18,6 +18,31 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+  
+    /**
+     * 특정 상품의 상세 정보를 조회합니다.
+     *
+     * @param productId 조회할 상품 ID
+     * @return 조회된 상품 정보 (ProductDTO.Response)와 200 OK 상태 코드,
+     *         상품이 없는 경우 404 Not Found
+     */
+    @GetMapping("/{productId}")
+    public ResponseEntity<ProductDTO.Response> getProductById(@PathVariable Integer productId) {
+        ProductDTO.Response product = productService.getProduct(productId);
+        if (product == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(product);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<ProductDTO.Response>> getAllProducts() {
+        ProductDTO.Response firstProduct = productService.getProduct(1);
+        if (firstProduct == null) {
+            return ResponseEntity.ok(List.of());
+        }
+        return ResponseEntity.ok(List.of(firstProduct));
+    }
 
     /**
      * 새로운 상품을 생성합니다.
@@ -52,22 +77,6 @@ public class ProductController {
                 "details", e.getMessage()
             ));
         }
-    }
-
-    /**
-     * 특정 상품의 상세 정보를 조회합니다.
-     *
-     * @param productId 조회할 상품 ID
-     * @return 조회된 상품 정보 (ProductDTO.Response)와 200 OK 상태 코드,
-     *         상품이 없는 경우 404 Not Found
-     */
-    @GetMapping("/{productId}")
-    public ResponseEntity<ProductDTO.Response> getProduct(@PathVariable Integer productId) {
-        ProductDTO.Response response = productService.getProduct(productId);
-        if (response != null) {
-            return ResponseEntity.ok(response);
-        }
-        return ResponseEntity.notFound().build();
     }
 
     /**
