@@ -39,7 +39,7 @@ public class ProductService {
         response.setImageUrl(product.getImageUrl());
         response.setCreatedAt(product.getCreatedAt());
         response.setSalesVolume(product.getSalesVolume());
-        // response.setSeller(convertToUserResponse(product.getUser())); // 판매자 정보가 필요하면 이 주석을 해제하고 구현
+        response.setSeller(convertToUserResponse(product.getUser()));
 
 
         // 옵션 변환
@@ -85,6 +85,9 @@ public class ProductService {
     }
 
     private ProductCategoryDTO.Response convertToCategoryResponse(ProductCategory category) {
+        if (category == null) {
+            return null;
+        }
         ProductCategoryDTO.Response response = new ProductCategoryDTO.Response();
         response.setId(category.getId());
         response.setName(category.getName());
@@ -94,9 +97,24 @@ public class ProductService {
         }
         return response;
     }
+
     public ProductDTO.Response getProduct(Integer productId) { // <-- 여기 있습니다!
         return productRepository.findById(productId)
                 .map(this::convertToResponse)
                 .orElse(null);
+
+    
+    private com.shopsphere.shopsphere_web.dto.UserDTO.Response convertToUserResponse(User user) {
+        if (user == null) {
+            return null;
+        }
+        com.shopsphere.shopsphere_web.dto.UserDTO.Response response = new com.shopsphere.shopsphere_web.dto.UserDTO.Response();
+        response.setId(user.getId());
+        response.setEmail(user.getEmail());
+        response.setName(user.getName());
+        response.setPhoneNumber(user.getPhoneNumber());
+        response.setAddress(user.getAddress());
+        response.setRole(user.getRole());
+        return response;
     }
 }
