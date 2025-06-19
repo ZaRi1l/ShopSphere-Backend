@@ -44,24 +44,35 @@ public class CartService {
 
     @Transactional
     public CartDTO.Response addItem(String userId, CartItemDTO.AddRequest request) {
+        if (request.getQuantity() <= 0) {
+            throw new IllegalArgumentException("수량은 1개 이상이어야 합니다.");
+        }
+
         Cart cart = getOrCreateCartEntity(userId);
-
         Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
 
-        // Validate product option if provided
+        // 상품 옵션 유효성 검사
         final ProductOption option;
         if (request.getOptionId() != null) {
             option = productOptionRepository.findById(request.getOptionId())
-                    .orElseThrow(() -> new IllegalArgumentException("Product option not found"));
+                    .orElseThrow(() -> new IllegalArgumentException("상품 옵션을 찾을 수 없습니다."));
             if (!option.getProduct().getId().equals(product.getId())) {
-                throw new IllegalArgumentException("Option does not belong to the product");
+                throw new IllegalArgumentException("해당 상품의 옵션이 아닙니다.");
+            }
+            // 옵션 재고 확인
+            if (request.getQuantity() > option.getStockQuantity()) {
+                throw new IllegalArgumentException("선택하신 옵션의 재고가 부족합니다. 최대 수량: " + option.getStockQuantity());
             }
         } else {
             option = null;
+            // 일반 상품 재고 확인
+            if (request.getQuantity() > product.getStockQuantity()) {
+                throw new IllegalArgumentException("상품 재고가 부족합니다. 최대 수량: " + product.getStockQuantity());
+            }
         }
 
-        // Check if item with the same product and option already exists in cart
+        // 기존 장바구니 아이템 조회
         CartItem existingItem = cartItemRepository.findByCart_Id(cart.getId()).stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()) && 
                     ((item.getProductOption() == null && option == null) || 
@@ -71,14 +82,28 @@ public class CartService {
                 .orElse(null);
 
         if (existingItem != null) {
-            // 같은 상품과 옵션 조합이 이미 있으면 수량만 증가
-            existingItem.setQuantity(existingItem.getQuantity() + request.getQuantity());
+            // 기존 아이템이 있는 경우 수량 증가 전 추가 재고 확인
+            int newQuantity = existingItem.getQuantity() + request.getQuantity();
+            if (option != null) {
+                if (newQuantity > option.getStockQuantity()) {
+                    throw new IllegalArgumentException("선택하신 옵션의 재고가 부족합니다. 추가 가능 수량: " + 
+                            (option.getStockQuantity() - existingItem.getQuantity()));
+                }
+            } else {
+                if (newQuantity > product.getStockQuantity()) {
+                    throw new IllegalArgumentException("상품 재고가 부족합니다. 추가 가능 수량: " + 
+                            (product.getStockQuantity() - existingItem.getQuantity()));
+                }
+            }
+            
+            existingItem.setQuantity(newQuantity);
             cartItemRepository.save(existingItem);
         } else {
+            // 새 아이템 추가
             CartItem cartItem = CartItem.builder()
                     .cart(cart)
                     .product(product)
-                    .productOption(option)  // 옵션 설정 추가
+                    .productOption(option)
                     .quantity(request.getQuantity())
                     .createdAt(LocalDateTime.now())
                     .build();
