@@ -25,7 +25,41 @@ public class ProductService {
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository; // ReviewRepository 주입
 
-    // ... createProduct, getProduct, getProductsByCategory, getProductsBySeller, updateProduct, deleteProduct 메서드들은 기존과 동일 ...
+    @Transactional
+    public ProductDTO.Response createProduct(String userId, ProductDTO.CreateRequest request) {
+        User seller = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Product product = Product.builder()
+                .category(categoryRepository.findById(request.getCategoryId())
+                        .orElseThrow(() -> new IllegalArgumentException("Category not found")))
+                .name(request.getName())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .stockQuantity(request.getStockQuantity())
+                .imageUrl(request.getImageUrl())
+                .user(seller)
+                .salesVolume(0)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        product = productRepository.save(product);
+
+        // Save options
+        if (request.getOptions() != null) {
+            for (ProductOptionDTO.CreateRequest optionRequest : request.getOptions()) {
+                ProductOption option = ProductOption.builder()
+                        .product(product)
+                        .size(optionRequest.getSize())
+                        .stockQuantity(optionRequest.getStockQuantity())
+                        .additionalPrice(optionRequest.getAdditionalPrice())
+                        .build();
+                optionRepository.save(option);
+            }
+        }
+
+        return convertToResponse(product);
+    }
 
     // ProductService 내의 convertToResponse 메서드 수정
     private ProductDTO.Response convertToResponse(Product product) {
@@ -102,6 +136,54 @@ public class ProductService {
         return productRepository.findById(productId)
                 .map(this::convertToResponse)
                 .orElse(null);
+    }
+
+    public List<ProductDTO.Response> getProductsByCategory(Integer categoryId) {
+        return productRepository.findByCategory_Id(categoryId).stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<ProductDTO.Response> getProductsBySeller(String userId) {
+        return productRepository.findByUser_Id(userId).stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ProductDTO.Response updateProduct(Integer productId, ProductDTO.UpdateRequest request) {
+        return productRepository.findById(productId)
+                .map(product -> {
+                    product.setName(request.getName());
+                    product.setDescription(request.getDescription());
+                    product.setPrice(request.getPrice());
+                    product.setStockQuantity(request.getStockQuantity());
+                    product.setImageUrl(request.getImageUrl());
+
+                    // Update options
+                    if (request.getOptions() != null) {
+                        for (ProductOptionDTO.UpdateRequest optionRequest : request.getOptions()) {
+                            if (optionRequest.getId() != null) {
+                                optionRepository.findById(optionRequest.getId())
+                                        .ifPresent(option -> {
+                                            option.setSize(optionRequest.getSize());
+                                            option.setStockQuantity(optionRequest.getStockQuantity());
+                                            option.setAdditionalPrice(optionRequest.getAdditionalPrice());
+                                        });
+                            }
+                        }
+                    }
+
+                    return convertToResponse(product);
+                })
+                .orElse(null);
+    }
+
+    @Transactional
+    public void deleteProduct(Integer productId) {
+        productRepository.deleteById(productId);
+    }
+
 
     
     private com.shopsphere.shopsphere_web.dto.UserDTO.Response convertToUserResponse(User user) {
