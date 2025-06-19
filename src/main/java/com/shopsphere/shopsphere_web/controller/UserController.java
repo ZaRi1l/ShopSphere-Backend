@@ -6,8 +6,12 @@ import com.shopsphere.shopsphere_web.entity.User;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import com.shopsphere.shopsphere_web.service.UserService;
+import com.shopsphere.shopsphere_web.service.FileStorageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
  
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
@@ -16,6 +20,7 @@ import jakarta.servlet.http.HttpSession;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
+    private final FileStorageService fileStorageService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody UserDTO.RegisterRequest userDTO) {
@@ -120,29 +125,81 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<?> getMyInfo(HttpSession session) {
-    try {
-        String userId = (String) session.getAttribute("userId");
-        if (userId == null) {
-            return ResponseEntity.status(401).body(Map.of("message", "로그인이 필요합니다."));
-        }
-        
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
-                
-        UserDTO.Response userResponse = UserDTO.Response.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .phoneNumber(user.getPhoneNumber())
-                .address(user.getAddress())
-                .role(user.getRole())
-                .build();
-                
-        return ResponseEntity.ok(userResponse);
-    } catch (Exception e) {
-        return ResponseEntity.status(500).body(Map.of("message", e.getMessage()));
-    }
-}
+        try {
+            String userId = (String) session.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body(Map.of("message", "로그인이 필요합니다."));
+            }
 
+            User user = userService.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다. ID: " + userId)); // 예외 메시지에 ID 추가
+
+            // User 엔티티에서 UserDTO.Response로 변환
+            UserDTO.Response userResponse = UserDTO.Response.builder()
+                    .id(user.getId())
+                    .name(user.getName())
+                    .email(user.getEmail())
+                    .phoneNumber(user.getPhoneNumber())
+                    .address(user.getAddress())
+                    .role(user.getRole())
+                    .profileImageUrl(user.getProfileImageUrl()) // --- profileImageUrl 매핑 추가 ---
+                    .build();
+
+            return ResponseEntity.ok(userResponse);
+        } catch (RuntimeException e) { // 구체적인 예외 처리 또는 로깅 추가 가능
+            // 예를 들어, 사용자를 찾지 못한 경우 404 반환
+            if (e.getMessage().startsWith("사용자 정보를 찾을 수 없습니다.")) {
+                return ResponseEntity.status(404).body(Map.of("message", e.getMessage()));
+            }
+            // 기타 런타임 예외는 500으로 처리
+            return ResponseEntity.status(500).body(Map.of("message", "서버 내부 오류: " + e.getMessage()));
+        } catch (Exception e) { // 그 외 모든 예외
+            return ResponseEntity.status(500).body(Map.of("message", "알 수 없는 오류 발생: " + e.getMessage()));
+        }
+    }
+    // --- 프로필 이미지 업로드/수정 API ---
+    @PatchMapping("/profile-image") // 또는 @PostMapping
+    public ResponseEntity<?> uploadProfileImage(@RequestParam("profileImageFile") MultipartFile file,
+                                                HttpSession session, HttpServletRequest request) {
+        // 1. 사용자 인증 (세션에서 userId 가져오기)
+        // 2. 파일 유효성 검사 (비어 있는지, 크기, 타입 등 - Multer 설정 또는 서비스 계층에서 처리 가능)
+        // 3. (선택) 이전 이미지 파일명 가져오기 (삭제 목적)
+        // 4. FileStorageService를 사용하여 파일 저장
+        // 5. 저장된 파일의 접근 URL 생성
+        // 6. UserService를 사용하여 데이터베이스에 사용자의 profileImageUrl 업데이트 (이전 파일명 전달)
+        // 7. 성공 응답 (새로운 profileImageUrl 포함) 또는 실패 응답 반환
+        try {
+            String userId = (String) session.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body(Map.of("message", "로그인이 필요합니다."));
+            }
+
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "업로드할 파일을 선택해주세요."));
+            }
+
+            User currentUser = userService.findById(userId)
+                                 .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다. ID: " + userId));
+            String oldFileName = userService.getFileNameFromUrl(currentUser.getProfileImageUrl());
+
+            String storedFileName = fileStorageService.storeProfileImage(file, userId); // FileStorageService에 프로필 전용 메소드 사용
+
+            String webAccessiblePath = "/uploads/profile_images/" + storedFileName; // WebConfig의 resource handler 경로와 일치
+            String fileDownloadUri = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() +
+                                     (request.getContextPath() != null ? request.getContextPath() : "") + webAccessiblePath;
+
+            userService.updateUserProfileImage(userId, fileDownloadUri, oldFileName);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "프로필 이미지가 성공적으로 업데이트되었습니다.",
+                    "profileImageUrl", fileDownloadUri
+            ));
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(500).body(Map.of("message", "이미지 처리 중 오류 발생: " + e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "알 수 없는 오류 발생: " + e.getMessage()));
+        }
+    }
 
 }

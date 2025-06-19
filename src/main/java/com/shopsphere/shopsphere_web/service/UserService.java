@@ -3,6 +3,7 @@ package com.shopsphere.shopsphere_web.service;
 import com.shopsphere.shopsphere_web.dto.UserDTO;
 import com.shopsphere.shopsphere_web.entity.User;
 import com.shopsphere.shopsphere_web.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -12,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -27,6 +29,7 @@ public class UserService {
     @Autowired
     private final PasswordEncoder passwordEncoder;
     private final RestTemplate restTemplate = new RestTemplate();
+    private final FileStorageService fileStorageService;
     
     @Value("${kakao.restapi.key}")
     private String kakaoRestApiKey;
@@ -184,4 +187,33 @@ public class UserService {
         return userRepository.findById(id);
     }
     
+    @Transactional
+    public String updateUserProfileImage(String userId, String newImageUrl, String oldFileNameToDelete) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다. ID: " + userId));
+
+        // 이전 파일 삭제 (FileStorageService의 프로필 이미지 전용 삭제 메소드 사용)
+        if (oldFileNameToDelete != null && !oldFileNameToDelete.isEmpty()) {
+            fileStorageService.deleteProfileImage(oldFileNameToDelete);
+        }
+
+        user.setProfileImageUrl(newImageUrl);
+        userRepository.save(user);
+        return newImageUrl;
+    }
+    
+    // 이전 이미지 파일명을 추출하는 헬퍼 메소드 (URL 구조에 따라 변경 필요)
+    public String getFileNameFromUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            return null;
+        }
+        try {
+            // 예: "http://localhost:8080/uploads/profile_images/user1-uuid.jpg"
+            // 마지막 '/' 이후의 문자열을 파일명으로 간주
+            return imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
+        } catch (Exception e) {
+            System.err.println("URL에서 파일명 추출 실패: " + imageUrl);
+            return null;
+        }
+    }
 }

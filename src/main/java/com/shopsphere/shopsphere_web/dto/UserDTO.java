@@ -47,6 +47,8 @@ public class UserDTO {
         private String phoneNumber;
         private String address;
         private String role;
+        // --- 새로 추가된 필드 ---
+        private String profileImageUrl; // 클라이언트로 전달될 필드명
     }
     
     @Data
