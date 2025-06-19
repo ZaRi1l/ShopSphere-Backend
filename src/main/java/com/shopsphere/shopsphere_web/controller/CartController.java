@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpSession;
 import java.util.Map;
 
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+
 @RestController
 @RequestMapping("/api/cart")
 @RequiredArgsConstructor
