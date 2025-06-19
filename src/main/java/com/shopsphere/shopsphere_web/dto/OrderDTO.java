@@ -39,4 +39,9 @@ public class OrderDTO {
         private List<OrderItemDTO.Response> items;
         private LocalDateTime createdAt;
     }
+    
+    @Data
+    public static class UpdateAddressRequest {
+        private String shippingAddress;
+    }
 }

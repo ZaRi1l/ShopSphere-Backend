@@ -75,6 +75,40 @@ public class OrderController {
         }
     }
 
+    // 주문 주소 변경
+    @PutMapping("/{orderId}/address")
+    public ResponseEntity<?> updateOrderAddress(
+            @PathVariable Integer orderId,
+            @RequestBody OrderDTO.UpdateAddressRequest request,
+            HttpSession session) {
+        try {
+            String userId = (String) session.getAttribute("userId");
+            if (userId == null) {
+                return ResponseEntity.status(401).body(Map.of("message", "로그인이 필요합니다."));
+            }
+            
+            // 주문 소유자 확인
+            OrderDTO.Response order = orderService.getOrder(orderId);
+            if (order == null) {
+                return ResponseEntity.notFound().build();
+            }
+            if (!order.getUser().getId().equals(userId)) {
+                return ResponseEntity.status(403).body(Map.of("message", "접근 권한이 없습니다."));
+            }
+            
+            // 주소 업데이트
+            OrderDTO.Response updatedOrder = orderService.updateOrderAddress(orderId, request.getShippingAddress());
+            return ResponseEntity.ok(updatedOrder);
+            
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "주소 변경 중 오류가 발생했습니다."));
+        }
+    }
+    
+
+    
     // 주문 취소
     @PutMapping("/{orderId}/cancel")
     public ResponseEntity<?> cancelOrder(@PathVariable Integer orderId, HttpSession session) {

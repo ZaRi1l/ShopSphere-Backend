@@ -111,6 +111,26 @@ public class OrderService {
                 })
                 .orElse(null);
     }
+    
+    /**
+     * 주문의 배송 주소를 업데이트합니다.
+     * @param orderId 주문 ID
+     * @param newAddress 새로운 배송 주소
+     * @return 업데이트된 주문 정보
+     */
+    @Transactional
+    public OrderDTO.Response updateOrderAddress(Integer orderId, String newAddress) {
+        if (newAddress == null || newAddress.trim().isEmpty()) {
+            throw new IllegalArgumentException("배송 주소를 입력해주세요.");
+        }
+        
+        return orderRepository.findById(orderId)
+                .map(order -> {
+                    order.setShippingAddress(newAddress);
+                    return convertToResponse(order);
+                })
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+    }
 
     private OrderDTO.Response convertToResponse(Order order) {
         OrderDTO.Response response = new OrderDTO.Response();
