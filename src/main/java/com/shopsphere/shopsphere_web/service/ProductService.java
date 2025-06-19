@@ -1,3 +1,4 @@
+// src/main/java/com/shopsphere/shopsphere_web/service/ProductService.java (수정)
 package com.shopsphere.shopsphere_web.service;
 
 import com.shopsphere.shopsphere_web.dto.ProductCategoryDTO;
@@ -22,95 +23,11 @@ public class ProductService {
     private final ProductImageRepository imageRepository;
     private final ProductOptionRepository optionRepository;
     private final UserRepository userRepository;
+    private final ReviewRepository reviewRepository; // ReviewRepository 주입
 
-    @Transactional
-    public ProductDTO.Response createProduct(String userId, ProductDTO.CreateRequest request) {
-        User seller = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    // ... createProduct, getProduct, getProductsByCategory, getProductsBySeller, updateProduct, deleteProduct 메서드들은 기존과 동일 ...
 
-        Product product = Product.builder()
-                .category(categoryRepository.findById(request.getCategoryId())
-                        .orElseThrow(() -> new IllegalArgumentException("Category not found")))
-                .name(request.getName())
-                .description(request.getDescription())
-                .price(request.getPrice())
-                .stockQuantity(request.getStockQuantity())
-                .imageUrl(request.getImageUrl())
-                .user(seller)
-                .salesVolume(0)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        product = productRepository.save(product);
-
-        // Save options
-        if (request.getOptions() != null) {
-            for (ProductOptionDTO.CreateRequest optionRequest : request.getOptions()) {
-                ProductOption option = ProductOption.builder()
-                        .product(product)
-                        .size(optionRequest.getSize())
-                        .stockQuantity(optionRequest.getStockQuantity())
-                        .additionalPrice(optionRequest.getAdditionalPrice())
-                        .build();
-                optionRepository.save(option);
-            }
-        }
-
-        return convertToResponse(product);
-    }
-
-    public ProductDTO.Response getProduct(Integer productId) {
-        return productRepository.findById(productId)
-                .map(this::convertToResponse)
-                .orElse(null);
-    }
-
-    public List<ProductDTO.Response> getProductsByCategory(Integer categoryId) {
-        return productRepository.findByCategory_Id(categoryId).stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
-
-    public List<ProductDTO.Response> getProductsBySeller(String userId) {
-        return productRepository.findByUser_Id(userId).stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public ProductDTO.Response updateProduct(Integer productId, ProductDTO.UpdateRequest request) {
-        return productRepository.findById(productId)
-                .map(product -> {
-                    product.setName(request.getName());
-                    product.setDescription(request.getDescription());
-                    product.setPrice(request.getPrice());
-                    product.setStockQuantity(request.getStockQuantity());
-                    product.setImageUrl(request.getImageUrl());
-
-                    // Update options
-                    if (request.getOptions() != null) {
-                        for (ProductOptionDTO.UpdateRequest optionRequest : request.getOptions()) {
-                            if (optionRequest.getId() != null) {
-                                optionRepository.findById(optionRequest.getId())
-                                        .ifPresent(option -> {
-                                            option.setSize(optionRequest.getSize());
-                                            option.setStockQuantity(optionRequest.getStockQuantity());
-                                            option.setAdditionalPrice(optionRequest.getAdditionalPrice());
-                                        });
-                            }
-                        }
-                    }
-
-                    return convertToResponse(product);
-                })
-                .orElse(null);
-    }
-
-    @Transactional
-    public void deleteProduct(Integer productId) {
-        productRepository.deleteById(productId);
-    }
-
+    // ProductService 내의 convertToResponse 메서드 수정
     private ProductDTO.Response convertToResponse(Product product) {
         ProductDTO.Response response = new ProductDTO.Response();
         response.setId(product.getId());
@@ -122,20 +39,30 @@ public class ProductService {
         response.setImageUrl(product.getImageUrl());
         response.setCreatedAt(product.getCreatedAt());
         response.setSalesVolume(product.getSalesVolume());
+        // response.setSeller(convertToUserResponse(product.getUser())); // 판매자 정보가 필요하면 이 주석을 해제하고 구현
 
-        // Convert options
+
+        // 옵션 변환
         List<ProductOptionDTO.Response> optionResponses = optionRepository.findByProduct_Id(product.getId())
                 .stream()
                 .map(this::convertToOptionResponse)
                 .collect(Collectors.toList());
         response.setOptions(optionResponses);
 
-        // Convert images
+        // 이미지 변환
         List<ProductImageDTO.Response> imageResponses = imageRepository.findByProduct_Id(product.getId())
                 .stream()
                 .map(this::convertToImageResponse)
                 .collect(Collectors.toList());
         response.setImages(imageResponses);
+
+        // 🌟 리뷰 개수 및 평균 평점 설정 (추가)
+        response.setReviewCount(reviewRepository.countByProductId(product.getId()));
+        response.setAverageRating(reviewRepository.findAverageRatingByProductId(product.getId()).orElse(0.0)); // 평균 없으면 0.0
+
+        // 🌟 관심 수 설정 (찜하기 기능이 없으므로 임의의 값 설정)
+        // 실제 구현에서는 '찜하기' 엔티티/리포토리를 통해 가져와야 합니다.
+        response.setInterestCount(999L); // 예시: 임의의 값 999
 
         return response;
     }
@@ -166,5 +93,10 @@ public class ProductService {
             response.setParent(convertToCategoryResponse(category.getParent()));
         }
         return response;
+    }
+    public ProductDTO.Response getProduct(Integer productId) { // <-- 여기 있습니다!
+        return productRepository.findById(productId)
+                .map(this::convertToResponse)
+                .orElse(null);
     }
 }

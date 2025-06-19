@@ -33,7 +33,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers(
                 "/error",
-                "/api/users/*",
+                "/api/**",
                 "/uploads/**",
                 "/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.gif", "/**/*.css", "/**/*.js"  // 모든 정적 리소스 허용
             ).permitAll()
