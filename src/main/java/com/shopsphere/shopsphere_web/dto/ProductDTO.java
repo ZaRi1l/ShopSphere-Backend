@@ -52,14 +52,14 @@ public class ProductDTO {
         private String description;
         private Integer price;
         private Integer stockQuantity;
-        private String imageUrl;
+        // private String imageUrl; // ProductImage로 통합 관리 시 이 필드는 제거 또는 대표 이미지 URL만 저장
         private LocalDateTime createdAt;
         private UserDTO.Response seller;
         private Integer salesVolume;
         private List<ProductOptionDTO.Response> options;
-        private List<ProductImageDTO.Response> images;
+        private List<ProductImageDTO> images; // 모든 상품 이미지를 담는 리스트 (대표 이미지 포함)
         private Double averageRating;
-        private Long reviewCount;     // 리뷰 개수
-        private Long interestCount;   // 관심(찜) 개수 - 이 부분은 백엔드 구현에 따라 달라질 수 있습니다.
+        private Long reviewCount;
+        private Long interestCount;
     }
 }
