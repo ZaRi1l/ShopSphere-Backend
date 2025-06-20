@@ -3,6 +3,8 @@ package com.shopsphere.shopsphere_web.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "product")
@@ -45,4 +47,7 @@ public class Product {
 
     @Column(name = "sales_volume")
     private Integer salesVolume;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+private List<ProductOption> options = new ArrayList<>();
 }

@@ -149,11 +149,29 @@ public class ProductService {
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
+    
+    public List<ProductDTO.Response> getAllProducts() {
+        return productRepository.findAll().stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
 
     @Transactional
-    public ProductDTO.Response updateProduct(Integer productId, ProductDTO.UpdateRequest request) {
+    public ProductDTO.Response updateProduct(String userId, Integer productId, ProductDTO.UpdateRequest request) {
         return productRepository.findById(productId)
                 .map(product -> {
+                    // 상품 소유자 확인
+                    if (!product.getUser().getId().equals(userId)) {
+                        throw new SecurityException("상품을 수정할 권한이 없습니다.");
+                    }
+
+                    // 카테고리 업데이트
+                    if (request.getCategoryId() != null) {
+                        ProductCategory category = categoryRepository.findById(request.getCategoryId())
+                                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+                        product.setCategory(category);
+                    }
+                    
                     product.setName(request.getName());
                     product.setDescription(request.getDescription());
                     product.setPrice(request.getPrice());
@@ -180,8 +198,20 @@ public class ProductService {
     }
 
     @Transactional
-    public void deleteProduct(Integer productId) {
+    public void deleteProduct(String userId, Integer productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                
+
+                System.out.println("삭제 시도1: " + productId);
+        // 상품 소유자 확인
+        if (!product.getUser().getId().equals(userId)) {
+            throw new SecurityException("상품을 삭제할 권한이 없습니다.");
+        }
+        
+        System.out.println("삭제 시도2: " + productId);
         productRepository.deleteById(productId);
+        System.out.println("삭제 완료: " + productId);
     }
 
 
