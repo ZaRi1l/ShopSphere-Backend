@@ -36,6 +36,7 @@ public class ProductDTO {
 
     @Data
     public static class UpdateRequest {
+        private Integer categoryId;
         private String name;
         private String description;
         private Integer price;

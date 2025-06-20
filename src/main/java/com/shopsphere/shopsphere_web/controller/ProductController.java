@@ -35,13 +35,16 @@ public class ProductController {
         return ResponseEntity.ok(product);
     }
 
+    /**
+     * 모든 상품 목록을 조회합니다.
+     *
+     * @return 조회된 모든 상품 목록과 200 OK 상태 코드,
+     *         상품이 없는 경우 빈 리스트와 200 OK
+     */
     @GetMapping
     public ResponseEntity<List<ProductDTO.Response>> getAllProducts() {
-        ProductDTO.Response firstProduct = productService.getProduct(1);
-        if (firstProduct == null) {
-            return ResponseEntity.ok(List.of());
-        }
-        return ResponseEntity.ok(List.of(firstProduct));
+        List<ProductDTO.Response> products = productService.getAllProducts();
+        return ResponseEntity.ok(products);
     }
 
     /**
@@ -103,34 +106,67 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
+   
     /**
      * 기존 상품 정보를 수정합니다.
      *
      * @param productId 수정할 상품 ID
      * @param request   수정할 상품 정보 (ProductDTO.UpdateRequest)
+     * @param session   현재 HTTP 세션
      * @return 수정된 상품 정보 (ProductDTO.Response)와 200 OK 상태 코드,
-     *         상품이 없는 경우 404 Not Found
+     *         상품이 없는 경우 404 Not Found,
+     *         권한이 없는 경우 403 Forbidden
      */
     @PutMapping("/{productId}")
-    public ResponseEntity<ProductDTO.Response> updateProduct(
+    public ResponseEntity<?> updateProduct(
             @PathVariable Integer productId,
-            @RequestBody ProductDTO.UpdateRequest request) {
-        ProductDTO.Response response = productService.updateProduct(productId, request);
-        if (response != null) {
-            return ResponseEntity.ok(response);
+            @RequestBody ProductDTO.UpdateRequest request,
+            HttpSession session) {
+        // 세션에서 사용자 ID 가져오기
+        String userId = (String) session.getAttribute("userId");
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "로그인이 필요합니다."));
         }
-        return ResponseEntity.notFound().build();
+
+        // 상품 소유자 확인 및 수정
+        try {
+            ProductDTO.Response response = productService.updateProduct(userId, productId, request);
+            if (response != null) {
+                return ResponseEntity.ok(response);
+            }
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("message", "상품을 수정할 권한이 없습니다."));
+        }
     }
 
     /**
      * 특정 상품을 삭제합니다.
      *
      * @param productId 삭제할 상품 ID
-     * @return 204 No Content 상태 코드 (성공 시)
+     * @param session   현재 HTTP 세션
+     * @return 204 No Content 상태 코드 (성공 시),
+     *         401 Unauthorized (로그인 필요),
+     *         403 Forbidden (권한 없음)
      */
     @DeleteMapping("/{productId}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Integer productId) {
-        productService.deleteProduct(productId);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteProduct(
+            @PathVariable Integer productId,
+            HttpSession session) {
+        // 세션에서 사용자 ID 가져오기
+        String userId = (String) session.getAttribute("userId");
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "로그인이 필요합니다."));
+        }
+
+        // 상품 소유자 확인 및 삭제
+        try {
+            productService.deleteProduct(userId, productId);
+            return ResponseEntity.ok().body(Map.of("message", "상품이 성공적으로 삭제되었습니다."));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("message", "상품을 삭제할 권한이 없습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
