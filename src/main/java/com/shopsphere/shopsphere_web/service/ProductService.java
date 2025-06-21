@@ -449,4 +449,43 @@ public class ProductService {
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
+
+    public ProductDTO.Response convertToProductResponse(Product product) {
+        if (product == null) {
+            return null;
+        }
+        ProductDTO.Response dto = new ProductDTO.Response();
+        dto.setId(product.getId());
+        dto.setName(product.getName());
+        dto.setDescription(product.getDescription());
+        dto.setPrice(product.getPrice());
+        dto.setStockQuantity(product.getStockQuantity());
+        dto.setCreatedAt(product.getCreatedAt());
+        dto.setSalesVolume(product.getSalesVolume());
+    
+        if (product.getCategory() != null) {
+            dto.setCategory(convertToCategoryResponse(product.getCategory())); // ProductCategory -> ProductCategoryDTO.Response
+        }
+        if (product.getUser() != null) { // 상품 판매자 정보
+            dto.setSeller(convertToUserResponse(product.getUser()));       // User -> UserDTO.Response
+        }
+        if (product.getImages() != null && !product.getImages().isEmpty()) {
+            dto.setImages(product.getImages().stream()
+                // .map(this::convertToProductImageDTO) // ProductImage -> ProductImageDTO
+                .map(imageEntity -> { // 간단히 ProductImageDTO를 직접 생성
+                    ProductImageDTO imageDto = new ProductImageDTO();
+                    imageDto.setId(imageEntity.getId());
+                    imageDto.setImageUrl(imageEntity.getImageUrl());
+                    imageDto.setDisplayOrder(imageEntity.getDisplayOrder());
+                    return imageDto;
+                })
+                .collect(Collectors.toList()));
+        }
+        // ProductDTO.Response에 평균 평점, 리뷰 수 등이 있다면 ProductService에서 채워야 함
+        // dto.setAverageRating(reviewRepository.findAverageRatingByProductId(product.getId()).orElse(0.0));
+        // dto.setReviewCount(reviewRepository.countByProductId(product.getId()));
+        // dto.setInterestCount(...)
+        return dto;
+    }
+    
 }
