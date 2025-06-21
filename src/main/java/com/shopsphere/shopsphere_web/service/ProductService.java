@@ -7,10 +7,14 @@ import com.shopsphere.shopsphere_web.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Sort; // Sort 임포트
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -400,5 +404,49 @@ public class ProductService {
         // productImageRepository.deleteAll(images);
 
         productRepository.deleteById(productId);
+    }
+
+    /**
+     * 키워드를 사용하여 상품명 또는 카테고리명에서 상품을 검색합니다.
+     *
+     * @param keyword 검색 키워드
+     * @return 검색된 ProductDTO.Response 리스트
+     */
+    public List<ProductDTO.Response> searchProductsByKeyword(String keyword, String sortOption) { // sortOption 파라미터 추가
+        List<Product> productsByName = productRepository.findByNameContainingIgnoreCase(keyword);
+        List<ProductCategory> foundCategories = categoryRepository.findByNameContainingIgnoreCase(keyword);
+        List<Product> productsByCategoryName = new ArrayList<>();
+        if (!foundCategories.isEmpty()) {
+            List<Integer> categoryIds = foundCategories.stream().map(ProductCategory::getId).collect(Collectors.toList());
+            productsByCategoryName = productRepository.findByCategory_IdIn(categoryIds);
+        }
+    
+        Set<Product> combinedProductSet = new HashSet<>(productsByName);
+        combinedProductSet.addAll(productsByCategoryName);
+    
+        // 정렬 로직
+        List<Product> sortedProducts = new ArrayList<>(combinedProductSet);
+        switch (sortOption) {
+            case "sales_volume_desc": // 판매량 많은 순 (인기순으로 대체 가능)
+                sortedProducts.sort(Comparator.comparing(Product::getSalesVolume, Comparator.nullsLast(Comparator.reverseOrder())).thenComparing(Product::getId));
+                break;
+            case "created_at_desc": // 최신 등록순
+                sortedProducts.sort(Comparator.comparing(Product::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())).thenComparing(Product::getId));
+                break;
+            case "price_asc": // 낮은 가격순
+                sortedProducts.sort(Comparator.comparing(Product::getPrice).thenComparing(Product::getId));
+                break;
+            case "price_desc": // 높은 가격순
+                sortedProducts.sort(Comparator.comparing(Product::getPrice, Comparator.reverseOrder()).thenComparing(Product::getId));
+                break;
+            case "musinsa_recommend": // 무신사 추천순 (별도 로직 필요, 여기서는 기본 정렬 또는 판매량으로 대체)
+            default: // 기본 정렬 (예: ID 또는 이름순, 또는 판매량 많은 순)
+                sortedProducts.sort(Comparator.comparing(Product::getSalesVolume, Comparator.nullsLast(Comparator.reverseOrder())).thenComparing(Product::getId)); // 기본은 판매량순
+                break;
+        }
+    
+        return sortedProducts.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
     }
 }
