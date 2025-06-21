@@ -6,4 +6,7 @@ import java.util.List;
 
 public interface ProductCategoryRepository extends JpaRepository<ProductCategory, Integer> {
     List<ProductCategory> findByParent_Id(Integer parentId);
+
+    // 카테고리명에 키워드가 포함된 카테고리 검색 (대소문자 무시)
+    List<ProductCategory> findByNameContainingIgnoreCase(String keyword);
 }

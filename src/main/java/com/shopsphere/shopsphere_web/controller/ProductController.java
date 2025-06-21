@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpSession;
 import java.util.Map;
 import java.util.List;
+import java.util.Collections; // 추가
 
 @RestController
 @RequestMapping("/api/products")
@@ -169,4 +170,21 @@ public class ProductController {
             return ResponseEntity.notFound().build();
         }
     }
+
+     /**
+     * 상품명 또는 카테고리명으로 상품을 검색합니다.
+     *
+     * @param keyword 검색어 (프론트엔드에서 query로 보냈다면 @RequestParam("query") String keyword)
+     * @return 검색된 상품 목록 (List<ProductDTO.Response>)
+     */
+    @GetMapping("/search")
+public ResponseEntity<List<ProductDTO.Response>> searchProducts(
+        @RequestParam(name = "keyword", required = false) String keyword,
+        @RequestParam(name = "sort", defaultValue = "musinsa_recommend") String sortOption) { // sort 파라미터 추가
+    if (keyword == null || keyword.trim().isEmpty()) {
+        return ResponseEntity.ok(Collections.emptyList());
+    }
+    List<ProductDTO.Response> products = productService.searchProductsByKeyword(keyword.trim(), sortOption); // 서비스에 sortOption 전달
+    return ResponseEntity.ok(products);
+}
 }
