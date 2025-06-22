@@ -23,6 +23,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.review-image-subdir}")
     private String reviewImageSubDir;
 
+    @Value("${file.product-image-subdir}") // 이 값을 application.properties에 추가
+    private String productImageSubDir; // 예: "images/products"
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
@@ -70,6 +73,21 @@ public class WebConfig implements WebMvcConfigurer {
         printDirectoryStatus("기본 업로드", absoluteBaseUploadPath);
         printDirectoryStatus("프로필 이미지", absoluteProfileImagePath);
         printDirectoryStatus("리뷰 이미지", absoluteReviewImagePath);
+
+        String trimmedProductImageSubDir = "images" + File.separator + "products"; // 임시 하드코딩, 실제로는 프로퍼티 사용
+    
+        Path absoluteProductImagePath = absoluteBaseUploadPath.resolve(trimmedProductImageSubDir).normalize();
+        String productImageWebPathPattern = "/" + baseUploadUrlSegment + "/" + trimmedProductImageSubDir.replace(File.separator, "/") + "/**";
+        // 예: /uploads/images/products/**
+        String productImageDiskLocation = "file:" + absoluteProductImagePath.toString() + File.separator;
+    
+        System.out.println("--- 상품 이미지 핸들러 설정 ---");
+        System.out.println("웹 경로 패턴: " + productImageWebPathPattern);
+        System.out.println("디스크 위치: " + productImageDiskLocation);
+        registry.addResourceHandler(productImageWebPathPattern)
+                .addResourceLocations(productImageDiskLocation)
+                .setCachePeriod(3600);
+    
     }
 
     // URL 세그먼트 추출 헬퍼 메소드
