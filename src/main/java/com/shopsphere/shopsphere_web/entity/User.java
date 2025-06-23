@@ -41,4 +41,7 @@ public class User {
     // --- 새로 추가된 필드 ---
     @Column(name = "profile_image_url", nullable = true, length = 512) // DB 컬럼명 profile_image_url
     private String profileImageUrl; // 필드명은 profileImageUrl (카멜케이스)
+
+    @Column(name = "kakao_id", unique = true) // 카카오 로그인 연동을 위한 필드 추가
+    private String kakaoId;
 }
