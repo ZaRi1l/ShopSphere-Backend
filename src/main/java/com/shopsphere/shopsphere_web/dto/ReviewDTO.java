@@ -33,5 +33,7 @@ public class ReviewDTO {
         private Integer rating;
         private String comment;
         private LocalDateTime createdAt;
+        // --- 새로 추가된 필드 ---
+        private String reviewImageUrl;
     }
 }

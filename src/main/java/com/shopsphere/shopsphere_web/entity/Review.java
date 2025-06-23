@@ -33,4 +33,8 @@ public class Review {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    // --- 새로 추가된 필드 ---
+    @Column(name = "review_image_url", length = 512) // DB 컬럼명 review_image_url
+    private String reviewImageUrl; // 이미지 파일의 웹 접근 URL
 }
