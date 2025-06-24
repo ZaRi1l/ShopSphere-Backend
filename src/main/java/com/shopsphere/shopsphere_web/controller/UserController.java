@@ -185,15 +185,15 @@ public class UserController {
 
             String webAccessiblePath = "/uploads/profile_images/" + storedFileName; // WebConfig의 resource handler 경로와
                                                                                     // 일치
-            String fileDownloadUri = request.getScheme() + "://" + request.getServerName() + ":"
-                    + request.getServerPort() +
-                    (request.getContextPath() != null ? request.getContextPath() : "") + webAccessiblePath;
+            // String fileDownloadUri = request.getScheme() + "://" + request.getServerName() + ":"
+            //         + request.getServerPort() +
+            //         (request.getContextPath() != null ? request.getContextPath() : "") + webAccessiblePath;
 
-            userService.updateUserProfileImage(userId, fileDownloadUri, oldFileName);
+            userService.updateUserProfileImage(userId, webAccessiblePath, oldFileName);
 
             return ResponseEntity.ok(Map.of(
                     "message", "프로필 이미지가 성공적으로 업데이트되었습니다.",
-                    "profileImageUrl", fileDownloadUri));
+                    "profileImageUrl", webAccessiblePath));
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(500).body(Map.of("message", "이미지 처리 중 오류 발생: " + e.getMessage()));

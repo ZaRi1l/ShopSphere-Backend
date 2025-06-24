@@ -163,7 +163,7 @@ public class ProductService {
         dto.setId(product.getId());
         dto.setName(product.getName());
         // 목록에서는 description 제외 가능
-        // dto.setDescription(product.getDescription()); 
+        dto.setDescription(product.getDescription()); 
         dto.setPrice(product.getPrice());
         dto.setStockQuantity(product.getStockQuantity());
         dto.setCreatedAt(product.getCreatedAt());
