@@ -13,6 +13,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.security.core.Authentication; // Authentication 심볼 해결
+import org.springframework.security.core.context.SecurityContextHolder; // SecurityContextHolder 심볼 해결
+import java.util.Enumeration; // Enumeration 심볼 해결
  
 @RestController
 @RequestMapping("/api/users")
@@ -42,6 +45,9 @@ public class UserController {
                 // 세션에 사용자 ID 저장
                 session.setAttribute("userId", authenticatedUser.getId());
                 session.setMaxInactiveInterval(1800); // 30분 세션 유지
+
+                // 🌟🌟🌟 일반 로그인 세션 저장 로그 추가 🌟🌟🌟
+                System.out.println("[Login] 일반 로그인 성공! Session ID: " + session.getId() + ", Stored userId: " + session.getAttribute("userId"));
                 
                 UserDTO.Response userResponse = UserDTO.Response.builder()
                         .id(authenticatedUser.getId())
@@ -68,13 +74,40 @@ public class UserController {
             return ResponseEntity.status(500).body(Map.of("message", "로그아웃 처리 중 오류가 발생했습니다."));
         }
     }
-    
+
     @GetMapping("/check")
     public ResponseEntity<?> checkLoginStatus(HttpSession session) {
+        // 🌟🌟🌟 1. checkLoginStatus 호출 시점 및 현재 세션 ID, userId 확인 🌟�🌟
         String userId = (String) session.getAttribute("userId");
+        System.out.println("[Check] checkLoginStatus 호출됨. Current Session ID: " + session.getId());
+        System.out.println("[Check] Session userId (raw): " + userId); // 세션에서 직접 가져온 userId 값
+
+        // 🌟🌟🌟 2. Spring Security Authentication 객체 확인 (추가 디버깅 용) 🌟🌟🌟
+        // Spring Security가 인증을 처리했다면 여기에 정보가 있을 수 있습니다.
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("[Check] SecurityContext Authentication: " + (authentication != null ? authentication.getName() + " (Authenticated: " + authentication.isAuthenticated() + ")" : "null"));
+
+        // 🌟🌟🌟 3. 세션에 저장된 모든 속성 확인 (가장 중요!) 🌟🌟🌟
+        System.out.println("[Check] All Session Attributes:");
+        Enumeration<String> attributeNames = session.getAttributeNames();
+        boolean hasAttributes = false;
+        while (attributeNames.hasMoreElements()) {
+            hasAttributes = true;
+            String name = attributeNames.nextElement();
+            Object value = session.getAttribute(name);
+            System.out.println("  - " + name + ": " + value + " (Type: " + (value != null ? value.getClass().getName() : "null") + ")");
+        }
+        if (!hasAttributes) {
+            System.out.println("  (No attributes found in this session)");
+        }
+        System.out.println("----------------------------------------");
+
+
         if (userId != null) {
+            System.out.println("[Check] 사용자 로그인 상태: true, userId: " + userId);
             return ResponseEntity.ok(Map.of("isLoggedIn", true, "userId", userId));
         }
+        System.out.println("[Check] 사용자 로그인 상태: false.");
         return ResponseEntity.ok(Map.of("isLoggedIn", false));
     }
 
