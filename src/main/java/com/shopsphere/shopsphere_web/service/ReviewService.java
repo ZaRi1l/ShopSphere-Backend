@@ -83,15 +83,16 @@ public class ReviewService {
             
             // 2. 웹 접근 가능 전체 URL 생성
             // 예: "http://localhost:8080/uploads/review_images/1/user1-1-uuid.jpg"
-            String scheme = httpServletRequest.getScheme(); // http 또는 https
-            String serverName = httpServletRequest.getServerName(); // localhost
-            int serverPort = httpServletRequest.getServerPort(); // 8080
-            String contextPath = httpServletRequest.getContextPath(); // 일반적으로 "" (비어 있음)
+            // String scheme = httpServletRequest.getScheme(); // http 또는 https
+            // String serverName = httpServletRequest.getServerName(); // localhost
+            // int serverPort = httpServletRequest.getServerPort(); // 8080
+            // String contextPath = httpServletRequest.getContextPath(); // 일반적으로 "" (비어 있음)
             
-            String baseServerUrl = scheme + "://" + serverName + ":" + serverPort + contextPath;
+            // String baseServerUrl = scheme + "://" + serverName + ":" + serverPort + contextPath;
             
-            reviewImageUrl = baseServerUrl + "/" + fileStorageService.getBaseUploadUrlSegment() + "/" +
-                             fileStorageService.getReviewImageSubDir() + "/" + storedFilePathSegment;
+            reviewImageUrl = "/" + fileStorageService.getBaseUploadUrlSegment() + "/" +
+                 fileStorageService.getReviewImageSubDir() + "/" + storedFilePathSegment;
+
         }
 
         Review review = Review.builder()

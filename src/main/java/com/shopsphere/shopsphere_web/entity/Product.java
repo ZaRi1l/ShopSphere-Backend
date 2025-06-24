@@ -46,11 +46,13 @@ public class Product {
     private Integer salesVolume;
 
     // ProductImage와의 일대다 관계 설정
+    @Builder.Default
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY) // LAZY 로딩 유지
     @OrderBy("displayOrder ASC")
     private List<ProductImage> images = new ArrayList<>();
 
     // ProductOption과의 일대다 관계 설정
+    @Builder.Default
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY) // LAZY 로딩 유지
     private List<ProductOption> options = new ArrayList<>();
     
