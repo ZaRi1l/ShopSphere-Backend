@@ -40,11 +40,6 @@ public class UserService {
     private final FileStorageService fileStorageService;
     private final RestTemplate restTemplate;
 
-
-
-
-
-    // register, authenticate 메소드는 그대로 유지 (상단에 옮겨 적어두신 'ㅅㅂㅅㅂㅅㅂㅅㅂㅅㅂㅅㅂ' 주석은 제거하시는게 좋습니다.)
     public UserDTO.Response register(UserDTO.RegisterRequest userDTO) {
         try {
             Optional<User> existingUser = userRepository.findById(userDTO.getId());
@@ -52,26 +47,40 @@ public class UserService {
                 throw new RuntimeException("이미 아이디가 존재합니다.");
             }
 
-            User user = User.builder()
+            User.UserBuilder userBuilder = User.builder()
                     .id(userDTO.getId())
                     .name(userDTO.getName())
-                    .email(userDTO.getEmail()) // email 필드 추가
+                    .email(userDTO.getEmail())
                     .password(passwordEncoder.encode(userDTO.getPassword()))
                     .phoneNumber(userDTO.getPhoneNumber())
-                    .address(userDTO.getAddress())
-                    .role("USER")
-                    .build();
+                    .address(userDTO.getAddress());
 
+            // role 값 설정 로직 변경
+            if (userDTO.getRole() != null && !userDTO.getRole().isEmpty()) {
+                // 유효한 role 값인지 검증하는 로직을 추가할 수 있습니다.
+                // 예를 들어 "USER", "SELLER"만 허용 등
+                if ("SELLER".equalsIgnoreCase(userDTO.getRole()) || "USER".equalsIgnoreCase(userDTO.getRole())) {
+                    userBuilder.role(userDTO.getRole().toUpperCase());
+                } else {
+                    // 허용되지 않는 role 값일 경우 처리 (예: 예외 발생 또는 기본값 USER)
+                    throw new RuntimeException("유효하지 않은 역할(role) 값입니다.");
+                    // 또는 userBuilder.role("USER");
+                }
+            } else {
+                userBuilder.role("USER"); // role이 전달되지 않으면 기본값 'USER'
+            }
+
+            User user = userBuilder.build();
             User savedUser = userRepository.save(user);
 
-            // User 객체를 UserDTO.Response로 변환
+            // ... (이하 응답 생성 로직은 동일)
             UserDTO.Response response = new UserDTO.Response();
             response.setId(savedUser.getId());
             response.setName(savedUser.getName());
             response.setEmail(savedUser.getEmail());
             response.setPhoneNumber(savedUser.getPhoneNumber());
             response.setAddress(savedUser.getAddress());
-            response.setRole(savedUser.getRole());
+            response.setRole(savedUser.getRole()); // 응답에도 role 포함
 
             return response;
         } catch (DataIntegrityViolationException e) {
@@ -84,7 +93,6 @@ public class UserService {
                 .filter(user -> passwordEncoder.matches(password, user.getPassword()))
                 .orElse(null);
     }
-
 
     public String getKakaoAccessToken(String authorizationCode) {
         HttpHeaders headers = new HttpHeaders();
@@ -112,8 +120,7 @@ public class UserService {
                     kakaoProperties.getTokenUri(),
                     HttpMethod.POST,
                     request,
-                    Map.class
-            );
+                    Map.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return (String) response.getBody().get("access_token");
@@ -126,10 +133,10 @@ public class UserService {
             System.err.println("HTTP Status Code: " + e.getStatusCode()); // 이 부분이 401일 것입니다.
             System.err.println("Response Body: " + e.getResponseBodyAsString()); // <<< 이 부분이 가장 중요합니다!
             System.err.println("---------------------------------");
-            throw new RuntimeException("카카오 요청 실패 (401 등): " + e.getStatusCode() + " - " + e.getResponseBodyAsString(), e);
+            throw new RuntimeException("카카오 요청 실패 (401 등): " + e.getStatusCode() + " - " + e.getResponseBodyAsString(),
+                    e);
         }
     }
-
 
     @Transactional
     public User processKakaoLogin(String code) {
@@ -193,12 +200,13 @@ public class UserService {
                     newUser.setId("kakao_" + kakaoId);
                     newUser.setKakaoId(kakaoId);
                     newUser.setName(nickname); // nickname은 이미 final 또는 effectively final
-                    newUser.setEmail(email);   // email은 이미 final 또는 effectively final
+                    newUser.setEmail(email); // email은 이미 final 또는 effectively final
                     newUser.setRole("USER");
                     newUser.setCreatedAt(LocalDateTime.now());
                     newUser.setPassword(null);
 
-                    System.out.println("새로운 카카오 사용자 생성 중: User ID=" + newUser.getId() + ", Kakao ID=" + newUser.getKakaoId());
+                    System.out.println(
+                            "새로운 카카오 사용자 생성 중: User ID=" + newUser.getId() + ", Kakao ID=" + newUser.getKakaoId());
                     return userRepository.save(newUser);
                 });
 
@@ -224,8 +232,8 @@ public class UserService {
         return user;
     }
 
-
-    // updateUser, deleteById, updatePassword, findById, updateUserProfileImage, getFileNameFromUrl
+    // updateUser, deleteById, updatePassword, findById, updateUserProfileImage,
+    // getFileNameFromUrl
     // 나머지 메소드들은 그대로 유지합니다.
     public UserDTO.Response updateUser(String id, UserDTO.UpdateRequest request) {
         User user = userRepository.findById(id)
@@ -304,7 +312,8 @@ public class UserService {
         try {
             // user_info_uri는 application.properties (또는 yml)에서 주입받은 필드입니다.
             // 이 필드가 UserService 클래스 내에 선언되어 있고, 값이 제대로 주입되는지 확인해야 합니다.
-            ResponseEntity<Map> response = restTemplate.exchange(kakaoProperties.getUserInfoUri(), HttpMethod.GET, request, Map.class);
+            ResponseEntity<Map> response = restTemplate.exchange(kakaoProperties.getUserInfoUri(), HttpMethod.GET,
+                    request, Map.class);
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return response.getBody();
             } else {

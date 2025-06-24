@@ -18,20 +18,20 @@ public class UserDTO {
     private String role;
     private LocalDateTime createdAt;
 
-    // Request DTOs
     @Data
-    public static class RegisterRequest {      
+    public static class RegisterRequest {
         private String id;
         private String password;
         private String name;
         private String phoneNumber;
         private String address;
         private String email;
+        private String role; // <--- 이 필드를 추가합니다.
     }
 
     @Data
     public static class LoginRequest {
-        private String id;  // email 대신 id 사용
+        private String id; // email 대신 id 사용
         private String password;
     }
 
@@ -50,23 +50,22 @@ public class UserDTO {
         // --- 새로 추가된 필드 ---
         private String profileImageUrl; // 클라이언트로 전달될 필드명
     }
-    
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UpdateRequest {
-    private String name;
-    private String email;
-    private String phoneNumber;
-}
+        private String name;
+        private String email;
+        private String phoneNumber;
+    }
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public static class PasswordUpdateRequest {
-    private String currentPassword;
-    private String newPassword;
-}
-
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PasswordUpdateRequest {
+        private String currentPassword;
+        private String newPassword;
+    }
 
 }

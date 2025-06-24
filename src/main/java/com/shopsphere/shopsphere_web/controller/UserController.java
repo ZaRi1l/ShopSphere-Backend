@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
- 
+
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -24,16 +24,13 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody UserDTO.RegisterRequest userDTO) {
         try {
-
-
-            
             UserDTO.Response user = userService.register(userDTO);
             return ResponseEntity.ok(user);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
-                    
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserDTO.LoginRequest loginRequestDTO, HttpSession session) {
         try {
@@ -42,7 +39,7 @@ public class UserController {
                 // 세션에 사용자 ID 저장
                 session.setAttribute("userId", authenticatedUser.getId());
                 session.setMaxInactiveInterval(1800); // 30분 세션 유지
-                
+
                 UserDTO.Response userResponse = UserDTO.Response.builder()
                         .id(authenticatedUser.getId())
                         .name(authenticatedUser.getName())
@@ -58,7 +55,7 @@ public class UserController {
             return ResponseEntity.status(500).body(Map.of("message", "로그인 처리 중 오류가 발생했습니다."));
         }
     }
-    
+
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpSession session) {
         try {
@@ -68,7 +65,7 @@ public class UserController {
             return ResponseEntity.status(500).body(Map.of("message", "로그아웃 처리 중 오류가 발생했습니다."));
         }
     }
-    
+
     @GetMapping("/check")
     public ResponseEntity<?> checkLoginStatus(HttpSession session) {
         String userId = (String) session.getAttribute("userId");
@@ -80,18 +77,19 @@ public class UserController {
 
     // @PatchMapping("/{id}")
     // public ResponseEntity<UserDTO.Response> updateUser(@PathVariable String id,
-    //         @RequestBody UserDTO.UpdateRequest request) {
-    //     try {
-    //         UserDTO.Response updatedUser = userService.updateUser(id, request);
-    //         return ResponseEntity.ok(updatedUser);
-    //     } catch (RuntimeException e) {
-    //         e.printStackTrace();
-    //         return ResponseEntity.badRequest().body(new UserDTO.Response());
-    //     }
+    // @RequestBody UserDTO.UpdateRequest request) {
+    // try {
+    // UserDTO.Response updatedUser = userService.updateUser(id, request);
+    // return ResponseEntity.ok(updatedUser);
+    // } catch (RuntimeException e) {
+    // e.printStackTrace();
+    // return ResponseEntity.badRequest().body(new UserDTO.Response());
+    // }
     // }
 
     @PatchMapping("/update")
-    public ResponseEntity<UserDTO.Response> updateUser(@RequestBody UserDTO.UpdateRequest request, HttpSession session) {
+    public ResponseEntity<UserDTO.Response> updateUser(@RequestBody UserDTO.UpdateRequest request,
+            HttpSession session) {
         try {
             String userId = (String) session.getAttribute("userId");
             UserDTO.Response updatedUser = userService.updateUser(userId, request);
@@ -156,10 +154,11 @@ public class UserController {
             return ResponseEntity.status(500).body(Map.of("message", "알 수 없는 오류 발생: " + e.getMessage()));
         }
     }
+
     // --- 프로필 이미지 업로드/수정 API ---
     @PatchMapping("/profile-image") // 또는 @PostMapping
     public ResponseEntity<?> uploadProfileImage(@RequestParam("profileImageFile") MultipartFile file,
-                                                HttpSession session, HttpServletRequest request) {
+            HttpSession session, HttpServletRequest request) {
         // 1. 사용자 인증 (세션에서 userId 가져오기)
         // 2. 파일 유효성 검사 (비어 있는지, 크기, 타입 등 - Multer 설정 또는 서비스 계층에서 처리 가능)
         // 3. (선택) 이전 이미지 파일명 가져오기 (삭제 목적)
@@ -178,21 +177,23 @@ public class UserController {
             }
 
             User currentUser = userService.findById(userId)
-                                 .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다. ID: " + userId));
+                    .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다. ID: " + userId));
             String oldFileName = userService.getFileNameFromUrl(currentUser.getProfileImageUrl());
 
-            String storedFileName = fileStorageService.storeProfileImage(file, userId); // FileStorageService에 프로필 전용 메소드 사용
+            String storedFileName = fileStorageService.storeProfileImage(file, userId); // FileStorageService에 프로필 전용
+                                                                                        // 메소드 사용
 
-            String webAccessiblePath = "/uploads/profile_images/" + storedFileName; // WebConfig의 resource handler 경로와 일치
-            String fileDownloadUri = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() +
-                                     (request.getContextPath() != null ? request.getContextPath() : "") + webAccessiblePath;
+            String webAccessiblePath = "/uploads/profile_images/" + storedFileName; // WebConfig의 resource handler 경로와
+                                                                                    // 일치
+            String fileDownloadUri = request.getScheme() + "://" + request.getServerName() + ":"
+                    + request.getServerPort() +
+                    (request.getContextPath() != null ? request.getContextPath() : "") + webAccessiblePath;
 
             userService.updateUserProfileImage(userId, fileDownloadUri, oldFileName);
 
             return ResponseEntity.ok(Map.of(
                     "message", "프로필 이미지가 성공적으로 업데이트되었습니다.",
-                    "profileImageUrl", fileDownloadUri
-            ));
+                    "profileImageUrl", fileDownloadUri));
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(500).body(Map.of("message", "이미지 처리 중 오류 발생: " + e.getMessage()));
