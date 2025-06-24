@@ -19,7 +19,7 @@ public class Product {
     @Column(name = "product_id")
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY 로딩 유지 (N+1 주의 구간, EntityGraph나 Fetch Join으로 해결)
     @JoinColumn(name = "category_id")
     private ProductCategory category;
 
@@ -38,22 +38,23 @@ public class Product {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY 로딩 유지
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(name = "sales_volume")
     private Integer salesVolume;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductOption> options = new ArrayList<>();
-
-    @Column(name = "image_url", columnDefinition = "VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
-    private String imageUrl; // 대표 이미지 URL (필요시 유지 또는 ProductImage로 통합 관리)
-
     // ProductImage와의 일대다 관계 설정
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @OrderBy("displayOrder ASC") // displayOrder 기준으로 정렬
-    private List<ProductImage> images = new ArrayList<>(); // 필드명 images로 통일 (ProductImage 엔티티 리스트)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY) // LAZY 로딩 유지
+    @OrderBy("displayOrder ASC")
+    private List<ProductImage> images = new ArrayList<>();
 
+    // ProductOption과의 일대다 관계 설정
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY) // LAZY 로딩 유지
+    private List<ProductOption> options = new ArrayList<>();
+    
+    // 대표 이미지 URL 필드는 ProductImage로 통합 관리한다면 제거. 여기서는 유지한다고 가정.
+    @Column(name = "image_url", columnDefinition = "VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+    private String imageUrl;
 }

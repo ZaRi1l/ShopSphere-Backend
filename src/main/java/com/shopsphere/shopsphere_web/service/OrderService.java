@@ -3,6 +3,7 @@ package com.shopsphere.shopsphere_web.service;
 
 import com.shopsphere.shopsphere_web.dto.OrderDTO;
 import com.shopsphere.shopsphere_web.dto.OrderItemDTO;
+import com.shopsphere.shopsphere_web.dto.ProductDTO;
 import com.shopsphere.shopsphere_web.dto.ProductOptionDTO;
 import com.shopsphere.shopsphere_web.dto.UserDTO; // ProductDTO는 ProductService에서 변환하므로 여기선 UserDTO만 필요할 수 있음
 import com.shopsphere.shopsphere_web.entity.*;
@@ -210,7 +211,8 @@ public class OrderService {
         response.setId(item.getId());
 
         if (item.getProduct() != null) {
-            response.setProduct(productService.convertToProductResponse(item.getProduct()));
+            ProductDTO.Response productDto = productService.getProduct(item.getProduct().getId());
+            response.setProduct(productDto);
         }
 
         if (item.getProductOption() != null) {
