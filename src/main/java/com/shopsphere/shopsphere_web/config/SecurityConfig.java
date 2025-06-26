@@ -35,12 +35,19 @@ public class SecurityConfig {
                         // 🌟 여기를 수정합니다. PathRequest.toStaticResources() 사용
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // 정적 리소스 허용
                         .requestMatchers(
-                                "/error",
+                                "/", "/index.html", "/error",
                                 "/api/**",
-                                "/api/auth/oauth/kakao/callback",// API 경로는 그대로 유지 (카카오 로그인도 여기에 포함)
-                                "/uploads/**", // 업로드된 파일 경로 허용 (프로필 이미지 등)
+                                "/uploads/**", 
                                 "/files/**",
-                                "/products/**"
+                                "/products/**",
+                                "/static/**", 
+                                "/css/**", 
+                                "/js/**", 
+                                "/images/**", 
+                                "/favicon.ico",
+                                "/**/*.html", 
+                                "/**/*.css", 
+                                "/**/*.js"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
