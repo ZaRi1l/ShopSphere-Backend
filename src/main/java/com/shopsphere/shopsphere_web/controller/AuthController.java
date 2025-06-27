@@ -26,13 +26,6 @@ import java.util.Map; // Map import 추가
 public class AuthController {
 
     private final UserService userService;
-
-    // ... (기존 로그인, 회원가입 등 메소드) ...
-
-    // 기존의 중복된 @PostMapping("/api/auth/oauth/kakao/callback")를 제거하거나
-    // @RequestMapping에 맞춰 "/oauth/kakao/callback"으로 변경
-    // 프론트에서 GET 요청으로 `code`를 보내는 것이 일반적이므로 @GetMapping으로 변경하는 것을 권장합니다.
-    // 만약 프론트에서 POST 요청을 보낸다면 @PostMapping 유지
     @PostMapping("/oauth/kakao/callback") // HTTP GET 요청으로 변경 권장
     // @PostMapping("/oauth/kakao/callback") // POST 요청을 유지한다면
     public ResponseEntity<?> kakaoLoginCallback(@RequestParam String code, HttpSession session) {
