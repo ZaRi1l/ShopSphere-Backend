@@ -23,6 +23,7 @@ jobs:
           script: |
             cd ~/ShopSphere-Backend
             git pull
+            sudo chmod 777 gradlew
             ./gradlew bootJar -x test
             sudo docker stop $(sudo docker ps -q) || true
             sudo docker rm $(sudo docker ps -aq) || true
