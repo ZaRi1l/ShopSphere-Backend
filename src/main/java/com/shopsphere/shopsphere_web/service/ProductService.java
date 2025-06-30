@@ -186,15 +186,15 @@ public class ProductService {
              dto.setImages(new ArrayList<>());
         }
 
-        // 옵션: 목록에서 필요 없다면 제외
-        // if (product.getOptions() != null && !product.getOptions().isEmpty()) { // LAZY 로딩 시 N+1
-        //     dto.setOptions(product.getOptions().stream()
-        //         .map(this::convertToOptionResponse)
-        //         .collect(Collectors.toList()));
-        // } else {
-        //      dto.setOptions(new ArrayList<>());
-        // }
-
+        // 옵션: EntityGraph로 이미 로드된 옵션 사용
+        if (product.getOptions() != null && !product.getOptions().isEmpty()) {
+            dto.setOptions(product.getOptions().stream()
+                .map(this::convertToOptionResponse)
+                .collect(Collectors.toList()));
+        } else {
+            dto.setOptions(new ArrayList<>());
+        }
+        
         // 리뷰 정보: N+1 문제의 주범이 될 수 있음. DTO 프로젝션 시 서브쿼리나 집계 함수 사용 권장.
         // 또는 상품 ID 리스트를 모아 한 번의 쿼리로 리뷰 정보를 가져와서 매핑하는 방식.
         // 여기서는 간단히 표시 (실제로는 최적화 필수)
