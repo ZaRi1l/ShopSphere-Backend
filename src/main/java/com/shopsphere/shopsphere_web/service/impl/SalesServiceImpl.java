@@ -45,39 +45,35 @@ public class SalesServiceImpl implements SalesService {
                 LocalDateTime startDateTime = startDate.atStartOfDay();
                 LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay().minusNanos(1);
 
-                // 판매자의 상품 ID 목록 조회 (컬렉션 페치 조인 없이 기본 조회)
-                List<Integer> sellerProductIds = productRepository.findByUserId(userId).stream()
-                                .map(Product::getId)
-                                .collect(Collectors.toList());
-
-                // 주문 상품 조회 (카테고리 필터 적용)
-                List<OrderItem> orderItems;
-                if (category != null && !category.isEmpty() && !"all".equalsIgnoreCase(category)) {
-                    System.out.println("Filtering by category: " + category);
-                    orderItems = orderItemRepository.findByProductIdInAndCreatedAtBetweenAndCategory(
-                            sellerProductIds, startDateTime, endDateTime, category);
-                } else {
-                    orderItems = orderItemRepository.findByProductIdInAndCreatedAtBetween(
-                            sellerProductIds, startDateTime, endDateTime);
+                // 상품 ID 파싱
+                Integer productId = null;
+                try {
+                        if (product != null && !product.isEmpty() && !"all".equals(product)) {
+                                productId = Integer.parseInt(product);
+                        }
+                } catch (NumberFormatException e) {
+                        System.out.println("Product ID is not a number: " + product);
                 }
+
+                // 주문 상품 조회
+                List<OrderItem> orderItems = orderItemRepository.findSalesData(
+                                userId,
+                                startDateTime,
+                                endDateTime,
+                                (category != null && !category.isEmpty() && !"all".equalsIgnoreCase(category) ? category
+                                                : null),
+                                productId);
 
                 // 필요한 경우에만 상품 정보 로드
                 if (!orderItems.isEmpty()) {
-                    // 상품 정보만 로드 (이미지와 옵션은 필요할 때만 로드)
-                    orderItems.forEach(oi -> Hibernate.initialize(oi.getProduct()));
-                }
-
-                // 상품 필터 적용
-                if (product != null && !product.isEmpty() && !"all".equals(product)) {
-                        orderItems = orderItems.stream()
-                                        .filter(item -> product.equals(item.getProduct().getName()))
-                                        .collect(Collectors.toList());
+                        orderItems.forEach(oi -> Hibernate.initialize(oi.getProduct()));
                 }
 
                 // 시간 범위에 따른 데이터 그룹화
                 List<SalesStatisticsDTO.SalesData> salesData;
 
                 if ("daily".equals(timeRange)) {
+                        // 일별 그룹화
                         Map<LocalDate, List<OrderItem>> dailySales = orderItems.stream()
                                         .collect(Collectors.groupingBy(item -> item.getCreatedAt().toLocalDate()));
 
@@ -91,10 +87,10 @@ public class SalesServiceImpl implements SalesService {
                         // 주간 그룹화 (연도-주차 형식으로 표시)
                         Map<String, List<OrderItem>> weeklySales = orderItems.stream()
                                         .collect(Collectors.groupingBy(item -> {
-                                            LocalDate date = item.getCreatedAt().toLocalDate();
-                                            int year = date.getYear();
-                                            int week = date.get(WeekFields.of(Locale.KOREA).weekOfWeekBasedYear());
-                                            return String.format("%d-%02d", year, week);
+                                                LocalDate date = item.getCreatedAt().toLocalDate();
+                                                int year = date.getYear();
+                                                int week = date.get(WeekFields.of(Locale.KOREA).weekOfWeekBasedYear());
+                                                return String.format("%d-%02d", year, week);
                                         }));
 
                         salesData = weeklySales.entrySet().stream()
@@ -104,17 +100,20 @@ public class SalesServiceImpl implements SalesService {
                                         .sorted(Comparator.comparing(SalesStatisticsDTO.SalesData::getLabel))
                                         .collect(Collectors.toList());
                 } else if ("monthly".equals(timeRange)) {
+                        // 월별 그룹화
                         Map<YearMonth, List<OrderItem>> monthlySales = orderItems.stream()
                                         .collect(Collectors.groupingBy(item -> YearMonth.from(item.getCreatedAt())));
 
                         salesData = monthlySales.entrySet().stream()
                                         .map(entry -> createSalesData(
-                                                        entry.getKey().getYear() + "-" + 
-                                                        String.format("%02d", entry.getKey().getMonthValue()),
+                                                        entry.getKey().getYear() + "-" +
+                                                                        String.format("%02d",
+                                                                                        entry.getKey().getMonthValue()),
                                                         entry.getValue()))
                                         .sorted(Comparator.comparing(SalesStatisticsDTO.SalesData::getLabel))
                                         .collect(Collectors.toList());
                 } else if ("yearly".equals(timeRange)) {
+                        // 연도별 그룹화
                         Map<Integer, List<OrderItem>> yearlySales = orderItems.stream()
                                         .collect(Collectors.groupingBy(item -> item.getCreatedAt().getYear()));
 

@@ -27,7 +27,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer>, JpaS
     // 위 메소드에 @EntityGraph 적용은 JpaSpecificationExecutor와 함께 사용할 때 주의 필요
     // 보통 Specification과 EntityGraph를 함께 쓰려면 커스텀 Repository 구현이나
     // Criteria API를 직접 사용하는 방식이 더 명확할 수 있습니다.
-    // 판매자 ID로 상품 목록 조회 (옵션 포함)
+    // 판매자 ID로 상품 목록 조회
     @EntityGraph(attributePaths = {"category", "user", "images"})
     List<Product> findByUserId(String userId);
 
