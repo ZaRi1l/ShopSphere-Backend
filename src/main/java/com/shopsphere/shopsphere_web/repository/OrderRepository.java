@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Integer> {
     @Query("SELECT DISTINCT o FROM Order o " +
@@ -17,6 +18,8 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
            "LEFT JOIN FETCH oi.productOption po " +
            "WHERE o.user.id = :userId")
     List<Order> findByUser_IdWithDetails(@Param("userId") String userId);
+
+    Optional<Order> findByTransactionId(String transactionId);
     
     List<Order> findByUser_Id(String userId);
     // findById는 JpaRepository에서 이미 제공하므로 제거

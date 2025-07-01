@@ -1,12 +1,10 @@
 package com.shopsphere.shopsphere_web.repository;
 
 import com.shopsphere.shopsphere_web.entity.Product;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph; // EntityGraph 사용 시
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
@@ -41,4 +39,8 @@ public interface ProductRepository extends JpaRepository<Product, Integer>, JpaS
 
     @Query("SELECT p FROM Product p WHERE p.category.id IN :categoryIds")
     List<Product> findByCategory_IdIn(@Param("categoryIds") List<Integer> categoryIds);
+    // 상품 조회 시 쓰기 락(PESSIMISTIC_WRITE)을 설정하여 다른 트랜잭션의 수정을 방지
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Product p WHERE p.id = :id")
+    Optional<Product> findByIdForUpdate(@Param("id") Integer id);
 }
