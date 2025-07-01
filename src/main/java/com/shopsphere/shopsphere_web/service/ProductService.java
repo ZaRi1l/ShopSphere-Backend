@@ -53,10 +53,10 @@ public class ProductService {
                 .images(new ArrayList<>()) // 이미지 리스트 초기화
                 .options(new ArrayList<>()) // 옵션 리스트 초기화
                 .build();
-        
+
         // 대표 이미지 URL이 있다면 Product 엔티티의 imageUrl 필드에 직접 저장 (이전 방식 유지 시)
         // 또는 ProductImage로 통합 관리한다면 아래 로직으로 변경
-        // product.setImageUrl(request.getImageUrl()); 
+        // product.setImageUrl(request.getImageUrl());
 
         Product savedProduct = productRepository.save(product);
 
@@ -85,7 +85,8 @@ public class ProductService {
                 }
             }
         }
-        // savedProduct.setImages(productImages); // Cascade 설정으로 자동 반영될 수도, 명시적 설정 후 재저장 필요할 수도
+        // savedProduct.setImages(productImages); // Cascade 설정으로 자동 반영될 수도, 명시적 설정 후
+        // 재저장 필요할 수도
 
         // 옵션 처리
         if (request.getOptions() != null) {
@@ -99,7 +100,7 @@ public class ProductService {
                 optionRepository.save(option);
             }
         }
-        
+
         // ID로 다시 조회하여 모든 연관관계가 로드된 엔티티를 DTO로 변환
         return productRepository.findById(savedProduct.getId())
                 .map(this::convertToResponseWithFetchedData) // N+1 주의하며 변환
@@ -140,7 +141,7 @@ public class ProductService {
         if (maxPrice != null) {
             spec = spec.and(ProductSpecifications.maxPrice(maxPrice));
         }
-        
+
         // ProductRepository의 findAll(Specification, Pageable) 사용
         // 이 findAll은 N+1을 해결하기 위해 EntityGraph나 Fetch Join을 내부적으로 사용하도록 설정하거나,
         // DTO 프로젝션을 사용하는 커스텀 Repository 메소드로 대체해야 함.
@@ -154,16 +155,18 @@ public class ProductService {
 
         return new PageImpl<>(dtoList, newPageable, productPage.getTotalElements());
     }
-    
-    // N+1 문제가 해결된 convertToResponse (연관 엔티티가 EAGER 로딩되었거나, Fetch Join으로 가져왔거나, DTO 프로젝션인 경우)
+
+    // N+1 문제가 해결된 convertToResponse (연관 엔티티가 EAGER 로딩되었거나, Fetch Join으로 가져왔거나, DTO
+    // 프로젝션인 경우)
     public ProductDTO.Response convertToResponseWithFetchedData(Product product) {
-        if (product == null) return null;
+        if (product == null)
+            return null;
 
         ProductDTO.Response dto = new ProductDTO.Response();
         dto.setId(product.getId());
         dto.setName(product.getName());
         // 목록에서는 description 제외 가능
-        dto.setDescription(product.getDescription()); 
+        dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());
         dto.setStockQuantity(product.getStockQuantity());
         dto.setCreatedAt(product.getCreatedAt());
@@ -175,26 +178,26 @@ public class ProductService {
         if (product.getUser() != null) { // FetchType.LAZY라면 N+1 유발 가능성
             dto.setSeller(convertToUserResponse(product.getUser()));
         }
-        
+
         // 이미지: Product 엔티티의 images 필드가 LAZY 로딩이고, 여기서 접근하면 N+1 발생
         // EntityGraph나 Fetch Join으로 함께 가져와야 함.
         if (product.getImages() != null && !product.getImages().isEmpty()) {
             dto.setImages(product.getImages().stream()
-                .map(this::convertToProductImageDTO)
-                .collect(Collectors.toList()));
+                    .map(this::convertToProductImageDTO)
+                    .collect(Collectors.toList()));
         } else {
-             dto.setImages(new ArrayList<>());
+            dto.setImages(new ArrayList<>());
         }
 
         // 옵션: EntityGraph로 이미 로드된 옵션 사용
         if (product.getOptions() != null && !product.getOptions().isEmpty()) {
             dto.setOptions(product.getOptions().stream()
-                .map(this::convertToOptionResponse)
-                .collect(Collectors.toList()));
+                    .map(this::convertToOptionResponse)
+                    .collect(Collectors.toList()));
         } else {
             dto.setOptions(new ArrayList<>());
         }
-        
+
         // 리뷰 정보: N+1 문제의 주범이 될 수 있음. DTO 프로젝션 시 서브쿼리나 집계 함수 사용 권장.
         // 또는 상품 ID 리스트를 모아 한 번의 쿼리로 리뷰 정보를 가져와서 매핑하는 방식.
         // 여기서는 간단히 표시 (실제로는 최적화 필수)
@@ -202,7 +205,7 @@ public class ProductService {
         Double averageRating = reviewRepository.findAverageRatingByProductId(product.getId()).orElse(0.0); // N+1
         dto.setReviewCount(reviewCount);
         dto.setAverageRating(averageRating);
-        
+
         dto.setInterestCount(0L); // 실제 관심 수 로직 필요
 
         return dto;
@@ -210,20 +213,22 @@ public class ProductService {
 
     // Helper: ProductCategory -> ProductCategoryDTO.Response
     private ProductCategoryDTO.Response convertToCategoryResponse(ProductCategory category) {
-        if (category == null) return null;
+        if (category == null)
+            return null;
         ProductCategoryDTO.Response dto = new ProductCategoryDTO.Response();
         dto.setId(category.getId());
         dto.setName(category.getName());
         dto.setCreatedAt(category.getCreatedAt());
         // if (category.getParent() != null) {
-        //     dto.setParent(convertToCategoryResponse(category.getParent()));
+        // dto.setParent(convertToCategoryResponse(category.getParent()));
         // }
         return dto;
     }
 
     // Helper: User -> UserDTO.Response
     private UserDTO.Response convertToUserResponse(User user) {
-        if (user == null) return null;
+        if (user == null)
+            return null;
         UserDTO.Response dto = new UserDTO.Response();
         dto.setId(user.getId());
         dto.setName(user.getName());
@@ -231,10 +236,11 @@ public class ProductService {
         // ... (UserDTO.Response에 정의된 다른 필드들)
         return dto;
     }
-    
+
     // Helper: ProductImage -> ProductImageDTO
     private ProductImageDTO convertToProductImageDTO(ProductImage image) {
-        if (image == null) return null;
+        if (image == null)
+            return null;
         ProductImageDTO dto = new ProductImageDTO();
         dto.setId(image.getId());
         dto.setImageUrl(image.getImageUrl());
@@ -245,7 +251,8 @@ public class ProductService {
 
     // Helper: ProductOption -> ProductOptionDTO.Response
     private ProductOptionDTO.Response convertToOptionResponse(ProductOption option) {
-        if (option == null) return null;
+        if (option == null)
+            return null;
         ProductOptionDTO.Response dto = new ProductOptionDTO.Response();
         dto.setId(option.getId());
         dto.setSize(option.getSize());
@@ -253,7 +260,6 @@ public class ProductService {
         dto.setAdditionalPrice(option.getAdditionalPrice());
         return dto;
     }
-
 
     public ProductDTO.Response getProduct(Integer productId) {
         // 상세 조회 시에는 모든 정보를 포함해야 하므로, Fetch Join이 필수적일 수 있음
@@ -269,7 +275,7 @@ public class ProductService {
                 .map(this::convertToResponseWithFetchedData) // N+1 주의
                 .collect(Collectors.toList());
     }
-    
+
     public List<ProductDTO.Response> getProductsBySeller(String userId) {
         // 페이징 없이 판매자별 모든 상품 조회 (N+1 주의)
         return productRepository.findByUser_Id(userId).stream()
@@ -282,6 +288,8 @@ public class ProductService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다: " + productId));
 
+        System.out.println("userId: " + userId);
+        System.out.println("product.getUser().getId(): " + product.getUser().getId());
         if (!product.getUser().getId().equals(userId)) {
             throw new SecurityException("상품을 수정할 권한이 없습니다.");
         }
@@ -291,26 +299,40 @@ public class ProductService {
                     .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다: " + request.getCategoryId()));
             product.setCategory(category);
         }
-        if (request.getName() != null) product.setName(request.getName());
-        if (request.getDescription() != null) product.setDescription(request.getDescription());
-        if (request.getPrice() != null) product.setPrice(request.getPrice());
-        if (request.getStockQuantity() != null) product.setStockQuantity(request.getStockQuantity());
-        
+        if (request.getName() != null)
+            product.setName(request.getName());
+        if (request.getDescription() != null)
+            product.setDescription(request.getDescription());
+        if (request.getPrice() != null)
+            product.setPrice(request.getPrice());
+        if (request.getStockQuantity() != null)
+            product.setStockQuantity(request.getStockQuantity());
+
         // 이미지 업데이트 로직 (단순화된 예시, 실제로는 더 정교해야 함)
         if (request.getImageUrl() != null) {
             // 대표 이미지 변경 로직: 기존 대표 이미지 삭제 또는 플래그 변경, 새 이미지 추가 등
-            // Product 엔티티의 imageUrl 필드를 직접 사용한다면 아래와 같이 간단히 할 수도 있음
-             product.setImageUrl(request.getImageUrl());
+            product.setImageUrl(request.getImageUrl());
         }
-        // 추가 이미지, 삭제된 이미지 처리 로직 필요
 
         // 옵션 업데이트 로직
-        if (request.getOptions() != null) {
-            // 기존 옵션과 비교하여 변경/추가/삭제 로직 필요
+        if (request.getOptions() != null && !request.getOptions().isEmpty()) {
+            // 기존 옵션 삭제
+            optionRepository.deleteByProductId(productId);
+
+            // 새 옵션 추가
+            for (ProductOptionDTO.UpdateRequest optionRequest : request.getOptions()) {
+                ProductOption option = ProductOption.builder()
+                        .product(product)
+                        .size(optionRequest.getSize())
+                        .stockQuantity(optionRequest.getStockQuantity())
+                        .additionalPrice(optionRequest.getAdditionalPrice())
+                        .build();
+                optionRepository.save(option);
+            }
         }
-        
+
         Product updatedProduct = productRepository.save(product);
-        return convertToResponseWithFetchedData(updatedProduct); // N+1 주의
+        return convertToResponseWithFetchedData(updatedProduct);
     }
 
     @Transactional
@@ -325,38 +347,47 @@ public class ProductService {
 
     public List<ProductDTO.Response> searchProductsByKeyword(String keyword, String sortOption) {
         // 이 로직은 페이징이 없고, 애플리케이션 레벨에서 정렬하므로 데이터가 많을 때 비효율적일 수 있음.
-        // findProductsWithFiltersAndSort와 유사하게 Specification과 Pageable을 사용하도록 개선하는 것이 좋음.
+        // findProductsWithFiltersAndSort와 유사하게 Specification과 Pageable을 사용하도록 개선하는 것이
+        // 좋음.
         List<Product> productsByName = productRepository.findByNameContainingIgnoreCase(keyword);
         List<ProductCategory> foundCategories = categoryRepository.findByNameContainingIgnoreCase(keyword);
         List<Product> productsByCategoryName = new ArrayList<>();
         if (!foundCategories.isEmpty()) {
-            List<Integer> categoryIds = foundCategories.stream().map(ProductCategory::getId).collect(Collectors.toList());
+            List<Integer> categoryIds = foundCategories.stream().map(ProductCategory::getId)
+                    .collect(Collectors.toList());
             productsByCategoryName = productRepository.findByCategory_IdIn(categoryIds);
         }
-    
+
         Set<Product> combinedProductSet = new HashSet<>(productsByName);
         combinedProductSet.addAll(productsByCategoryName);
-    
+
         List<Product> sortedProducts = new ArrayList<>(combinedProductSet);
         switch (sortOption.toLowerCase()) {
             case "sales_volume_desc":
-                sortedProducts.sort(Comparator.comparing(Product::getSalesVolume, Comparator.nullsLast(Comparator.reverseOrder())).thenComparing(Product::getId));
+                sortedProducts.sort(
+                        Comparator.comparing(Product::getSalesVolume, Comparator.nullsLast(Comparator.reverseOrder()))
+                                .thenComparing(Product::getId));
                 break;
             case "created_at_desc":
-                sortedProducts.sort(Comparator.comparing(Product::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())).thenComparing(Product::getId));
+                sortedProducts.sort(
+                        Comparator.comparing(Product::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                                .thenComparing(Product::getId));
                 break;
             case "price_asc":
                 sortedProducts.sort(Comparator.comparing(Product::getPrice).thenComparing(Product::getId));
                 break;
             case "price_desc":
-                sortedProducts.sort(Comparator.comparing(Product::getPrice, Comparator.reverseOrder()).thenComparing(Product::getId));
+                sortedProducts.sort(Comparator.comparing(Product::getPrice, Comparator.reverseOrder())
+                        .thenComparing(Product::getId));
                 break;
             case "musinsa_recommend":
             default:
-                sortedProducts.sort(Comparator.comparing(Product::getSalesVolume, Comparator.nullsLast(Comparator.reverseOrder())).thenComparing(Product::getId));
+                sortedProducts.sort(
+                        Comparator.comparing(Product::getSalesVolume, Comparator.nullsLast(Comparator.reverseOrder()))
+                                .thenComparing(Product::getId));
                 break;
         }
-    
+
         return sortedProducts.stream()
                 .map(this::convertToResponseWithFetchedData) // N+1 주의
                 .collect(Collectors.toList());
