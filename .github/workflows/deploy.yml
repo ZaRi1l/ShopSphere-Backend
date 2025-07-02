@@ -13,9 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
       - name: SSH Deploy
         uses: appleboy/ssh-action@master
         with:
@@ -23,18 +20,38 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            # 백엔드 Docker 이미지 다시 빌드하고 재시작
+            # 3. 백엔드 빌드 및 재시작
+            echo "--- Restarting Backend ---"
             cd ~/ShopSphere-Backend
-            git pull
             sudo chmod 777 gradlew
             ./gradlew bootJar -x test
 
-            # 안전하게 현재 컨테이너 있을 때만 stop / rm
-            RUNNING_CONTAINERS=$(sudo docker ps -q)
-            if [ -n "$RUNNING_CONTAINERS" ]; then
-              sudo docker stop $RUNNING_CONTAINERS
-              sudo docker rm $RUNNING_CONTAINERS
+            # 4. Docker 컨테이너 정리 (강화된 버전)
+            CONTAINER_NAME="shopsphere-backend-app"
+
+            # 4-1. 이름으로 기존 컨테이너 중지 및 삭제
+            if [ "$(sudo docker ps -q -f name=^/${CONTAINER_NAME}$)" ]; then
+                echo "Stopping named container: ${CONTAINER_NAME}"
+                sudo docker stop ${CONTAINER_NAME}
+            fi
+            if [ "$(sudo docker ps -aq -f name=^/${CONTAINER_NAME}$)" ]; then
+                echo "Removing named container: ${CONTAINER_NAME}"
+                sudo docker rm ${CONTAINER_NAME}
             fi
 
+            # 4-2. (보험용) 8080 포트를 사용하는 다른 컨테이너가 있다면 중지 및 삭제
+            ZOMBIE_CONTAINER_ID=$(sudo docker ps -q --filter "publish=8080")
+            if [ -n "$ZOMBIE_CONTAINER_ID" ]; then
+                echo "Stopping zombie container using port 8080: ${ZOMBIE_CONTAINER_ID}"
+                sudo docker stop $ZOMBIE_CONTAINER_ID
+                echo "Removing zombie container: ${ZOMBIE_CONTAINER_ID}"
+                sudo docker rm $ZOMBIE_CONTAINER_ID
+            fi
+
+            # 5. 새로운 Docker 이미지 빌드
+            echo "--- Building new Docker image ---"
             sudo docker build --no-cache -t shopsphere-backend .
-            sudo docker run -d -p 8080:8080 shopsphere-backend
+
+            # 6. 새로운 컨테이너 실행
+            echo "--- Running new container ---"
+            sudo docker run -d -p 8080:8080 --name ${CONTAINER_NAME} shopsphere-backend
