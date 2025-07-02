@@ -36,6 +36,8 @@ public class SecurityConfig {
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // 정적 리소스 허용
                         .requestMatchers(
                                 "/", "/index.html", "/error",
+                                "/**",
+                                "/*",
                                 "/api/**",
                                 "/uploads/**", 
                                 "/files/**",
