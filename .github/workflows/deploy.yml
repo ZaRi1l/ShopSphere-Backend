@@ -23,11 +23,18 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
+            # 백엔드 Docker 이미지 다시 빌드하고 재시작
             cd ~/ShopSphere-Backend
             git pull
             sudo chmod 777 gradlew
             ./gradlew bootJar -x test
-            sudo docker stop $(sudo docker ps -q) || true
-            sudo docker rm $(sudo docker ps -aq) || true
+
+            # 안전하게 현재 컨테이너 있을 때만 stop / rm
+            RUNNING_CONTAINERS=$(sudo docker ps -q)
+            if [ -n "$RUNNING_CONTAINERS" ]; then
+              sudo docker stop $RUNNING_CONTAINERS
+              sudo docker rm $RUNNING_CONTAINERS
+            fi
+
             sudo docker build --no-cache -t shopsphere-backend .
             sudo docker run -d -p 8080:8080 shopsphere-backend

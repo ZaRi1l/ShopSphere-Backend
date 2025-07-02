@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpSession;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.List; // getAllProducts 등에서 List를 반환할 경우 필요
 
 @RestController
@@ -106,21 +107,7 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
-    /**
-     * 현재 로그인한 판매자가 등록한 모든 상품 목록을 조회합니다. (페이징 미적용, 필요시 getProducts로 통합 고려)
-     *
-     * @param session 현재 HTTP 세션
-     * @return 판매자의 상품 목록 (List<ProductDTO.Response>)과 200 OK 상태 코드
-     */
-    @GetMapping("/seller/me")
-    public ResponseEntity<List<ProductDTO.Response>> getMyProducts(HttpSession session) {
-        String userId = (String) session.getAttribute("userId");
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(List.of());
-        }
-        List<ProductDTO.Response> products = productService.getProductsBySeller(userId);
-        return ResponseEntity.ok(products);
-    }
+
 
     /**
      * 기존 상품 정보를 수정합니다.
