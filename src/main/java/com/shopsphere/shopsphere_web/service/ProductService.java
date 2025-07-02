@@ -210,6 +210,26 @@ public class ProductService {
 
         return dto;
     }
+    private ProductDTO.Response convertToDetailResponse(Product product) {
+        if (product == null) return null;
+
+        // 1. 기본 정보는 기존 메소드를 재사용하여 채웁니다.
+        ProductDTO.Response dto = convertToResponseWithFetchedData(product);
+
+        // 2. ✨✨✨ 상세 조회에서만 필요한 옵션 정보를 추가로 채웁니다. ✨✨✨
+        if (product.getOptions() != null && !product.getOptions().isEmpty()) {
+            dto.setOptions(product.getOptions().stream()
+                    .map(this::convertToOptionResponse) // 주석 해제!
+                    .collect(Collectors.toList()));
+        } else {
+            dto.setOptions(new ArrayList<>());
+        }
+
+        // 만약 description도 목록에서 제외했다면, 여기서 다시 설정해줍니다.
+        dto.setDescription(product.getDescription());
+
+        return dto;
+    }
 
     // Helper: ProductCategory -> ProductCategoryDTO.Response
     private ProductCategoryDTO.Response convertToCategoryResponse(ProductCategory category) {
@@ -265,7 +285,7 @@ public class ProductService {
         // 상세 조회 시에는 모든 정보를 포함해야 하므로, Fetch Join이 필수적일 수 있음
         // 또는 ProductRepository에 @EntityGraph를 사용한 findById 정의
         return productRepository.findById(productId)
-                .map(this::convertToResponseWithFetchedData) // N+1 주의
+                .map(this::convertToDetailResponse) // N+1 주의
                 .orElse(null);
     }
 
