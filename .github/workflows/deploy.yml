@@ -96,15 +96,19 @@ jobs:
 
             CONTAINER_NAME="shopsphere-backend-app"
 
-            if [ "$(sudo docker ps -q -f name=^/${CONTAINER_NAME}$)" ]; then
-                sudo docker stop ${CONTAINER_NAME}
-                sudo docker rm ${CONTAINER_NAME}
+            # 수정된 부분: docker ps 명령어에 '-a' 옵션 추가
+            # 이제 실행 중이든, 종료되었든 이름이 같은 컨테이너를 모두 찾습니다.
+            if [ "$(sudo docker ps -aq -f name=^/${CONTAINER_NAME}$)" ]; then
+                echo "--- Stopping and Removing Existing Container ---"
+                # '-f' 옵션은 실행 중이 아니면 에러를 내므로, 그냥 rm -f 로 처리하는 것이 더 안전합니다.
+                sudo docker rm -f ${CONTAINER_NAME}
             fi
 
-            ZOMBIE_CONTAINER_ID=$(sudo docker ps -q --filter "publish=8080")
+            # 이 부분은 그대로 두거나, 더 견고하게 만들 수 있습니다. (아래 추가 설명 참조)
+            ZOMBIE_CONTAINER_ID=$(sudo docker ps -aq --filter "publish=8080")
             if [ -n "$ZOMBIE_CONTAINER_ID" ]; then
-                sudo docker stop $ZOMBIE_CONTAINER_ID
-                sudo docker rm $ZOMBIE_CONTAINER_ID
+                echo "--- Removing Zombie Container on port 8080 ---"
+                sudo docker rm -f $ZOMBIE_CONTAINER_ID
             fi
 
             echo "--- Building and Running New Docker Container ---"
