@@ -69,6 +69,12 @@ jobs:
           chmod +x ./gradlew
           ./gradlew bootJar -x test
 
+      ############################################################
+      # NEW STEP: Move JAR to a predictable location
+      ############################################################
+      - name: Move JAR to root
+        run: mv backend/build/libs/app.jar app.jar
+
       #####################################
       # 6. Upload JAR to EC2 and Run Docker
       #####################################
@@ -78,8 +84,10 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.PRIVATE_KEY }}
-          source: backend/build/libs/app.jar
+          # 이제 source는 매우 단순하고 명확해집니다.
+          source: app.jar
           target: ~/ShopSphere-Backend
+
 
       - name: Restart Backend in EC2 (Docker)
         uses: appleboy/ssh-action@v1.0.3
