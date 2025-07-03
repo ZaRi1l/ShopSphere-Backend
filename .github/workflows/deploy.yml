@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      
   pull_request:
     branches:
       - master
@@ -13,45 +14,99 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: SSH Deploy
-        uses: appleboy/ssh-action@master
+      #####################################
+      # 1. Checkout Backend Repository
+      #####################################
+      - name: Checkout Backend
+        uses: actions/checkout@v3
+        with:
+          path: backend
+
+      #####################################
+      # 2. Checkout Frontend Repository
+      #####################################
+      - name: Checkout Frontend
+        uses: actions/checkout@v3
+        with:
+          repository: Sahmyook-4-team/ShopSphere-Frontend
+          token: ${{ secrets.GH_TOKEN }}
+          path: frontend
+
+      #####################################
+      # 3. Setup Node.js and Build Frontend
+      #####################################
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: |
+          CI=false npm run build
+
+      #####################################
+      # 4. Copy Frontend build to Backend static
+      #####################################
+      - name: Copy Frontend Build to Backend Static Folder
+        run: |
+          rm -rf backend/src/main/resources/static/*
+          cp -r frontend/build/* backend/src/main/resources/static/
+
+      #####################################
+      # 5. Setup JDK and Build Backend JAR
+      #####################################
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build Backend JAR
+        working-directory: backend
+        run: |
+          chmod +x ./gradlew
+          ./gradlew bootJar -x test
+
+      #####################################
+      # 6. Upload JAR to EC2 and Run Docker
+      #####################################
+      - name: Upload JAR to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.PRIVATE_KEY }}
+          source: backend/build/libs/*.jar
+          target: ~/ShopSphere-Backend/app.jar
+
+      - name: Restart Backend in EC2 (Docker)
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            # 3. 백엔드 빌드 및 재시작
             echo "--- Restarting Backend ---"
             cd ~/ShopSphere-Backend
-            sudo chmod 777 gradlew
-            ./gradlew bootJar -x test
 
-            # 4. Docker 컨테이너 정리 (강화된 버전)
             CONTAINER_NAME="shopsphere-backend-app"
 
-            # 4-1. 이름으로 기존 컨테이너 중지 및 삭제
             if [ "$(sudo docker ps -q -f name=^/${CONTAINER_NAME}$)" ]; then
-                echo "Stopping named container: ${CONTAINER_NAME}"
                 sudo docker stop ${CONTAINER_NAME}
-            fi
-            if [ "$(sudo docker ps -aq -f name=^/${CONTAINER_NAME}$)" ]; then
-                echo "Removing named container: ${CONTAINER_NAME}"
                 sudo docker rm ${CONTAINER_NAME}
             fi
 
-            # 4-2. (보험용) 8080 포트를 사용하는 다른 컨테이너가 있다면 중지 및 삭제
             ZOMBIE_CONTAINER_ID=$(sudo docker ps -q --filter "publish=8080")
             if [ -n "$ZOMBIE_CONTAINER_ID" ]; then
-                echo "Stopping zombie container using port 8080: ${ZOMBIE_CONTAINER_ID}"
                 sudo docker stop $ZOMBIE_CONTAINER_ID
-                echo "Removing zombie container: ${ZOMBIE_CONTAINER_ID}"
                 sudo docker rm $ZOMBIE_CONTAINER_ID
             fi
 
-            # 5. 새로운 Docker 이미지 빌드
-            echo "--- Building new Docker image ---"
+            echo "--- Building and Running New Docker Container ---"
             sudo docker build --no-cache -t shopsphere-backend .
-
-            # 6. 새로운 컨테이너 실행
-            echo "--- Running new container ---"
             sudo docker run -d -p 8080:8080 --name ${CONTAINER_NAME} shopsphere-backend
