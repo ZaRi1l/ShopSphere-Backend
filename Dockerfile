@@ -1,12 +1,8 @@
-# Java 17~23 중 서버에 맞게 선택
 FROM openjdk:17-jdk-slim
 
-# JAR 넣기
-ARG JAR_FILE=build/libs/*.jar
-COPY ${JAR_FILE} app.jar
+# app.jar은 이미 EC2에 복사되어 있음
+COPY app.jar app.jar
 
-# 포트
 EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app.jar"]
 
-# 실행
-ENTRYPOINT ["java","-jar","/app.jar"]
