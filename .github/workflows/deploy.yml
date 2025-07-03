@@ -81,7 +81,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.PRIVATE_KEY }}
-          source: backend/build/libs/*.jar
+          source: backend/build/libs/app.jar
           target: ~/ShopSphere-Backend/app.jar
 
       - name: Restart Backend in EC2 (Docker)
