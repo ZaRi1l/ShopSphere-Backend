@@ -47,4 +47,13 @@ public class Order {
     @Builder.Default
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
+
+    // 주문의 판매자 정보를 가져오는 메서드
+    public User getSeller() {
+        if (orderItems == null || orderItems.isEmpty()) {
+            throw new IllegalStateException("주문에 상품이 없습니다.");
+        }
+        // 첫 번째 주문 항목의 상품에서 판매자 정보를 가져옴
+        return orderItems.get(0).getProduct().getUser();
+    }
 }
