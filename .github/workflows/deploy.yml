@@ -109,7 +109,7 @@ jobs:
                 sudo docker rm -f ${CONTAINER_NAME}
             fi
 
-            sudo docker system prune -a
+            sudo docker system prune -af
 
             # 이 부분은 그대로 두거나, 더 견고하게 만들 수 있습니다. (아래 추가 설명 참조)
             ZOMBIE_CONTAINER_ID=$(sudo docker ps -aq --filter "publish=8080")
