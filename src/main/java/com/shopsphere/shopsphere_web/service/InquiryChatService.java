@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
@@ -119,11 +120,15 @@ public class InquiryChatService {
                 throw new SecurityException("이 채팅방에 메시지를 보낼 권한이 없습니다.");
             }
 
+
             InquiryChat chat = InquiryChat.builder()
                     .chatRoom(chatRoom)
                     .sender(sender)
                     .message(requestDto.getMessage())
                     .build();
+
+            // 수동으로 시간 설정
+            chat.setSentAt(LocalDateTime.now());
 
             return new InquiryChatDto(chatRepository.save(chat));
         } catch (IllegalArgumentException | SecurityException e) {
@@ -163,6 +168,27 @@ public class InquiryChatService {
     }
 
     // 사용자의 모든 채팅방 조회 (구매자 또는 판매자 기준)
+    // WebSocket을 통해 메시지 전송을 위한 메서드 (기존 sendMessage와 유사하지만 senderId를 requestDto에서 가져옴)
+    @Transactional
+    public InquiryChatDto sendMessage(InquiryChatRequestDto requestDto) {
+        try {
+            if (requestDto == null || requestDto.getSenderId() == null || requestDto.getSenderId().isEmpty()) {
+                throw new IllegalArgumentException("요청 정보가 올바르지 않습니다.");
+            }
+
+            if (requestDto.getMessage() == null || requestDto.getMessage().trim().isEmpty()) {
+                throw new IllegalArgumentException("메시지 내용은 필수입니다.");
+            }
+
+            return sendMessage(requestDto.getSenderId(), requestDto);
+        } catch (IllegalArgumentException | SecurityException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error in sendMessage via WebSocket: {}", e.getMessage(), e);
+            throw new RuntimeException("메시지 전송 중 오류가 발생했습니다.", e);
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<InquiryChatRoomDto> getUserChatRooms(String userId) {
         try {
