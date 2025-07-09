@@ -62,4 +62,9 @@ public class InquiryChatRoom {
     public Integer getOrderItemId() {
         return orderItem != null ? orderItem.getId() : null;
     }
+
+    // Helper method to get order item
+    public OrderItem getOrderItem() {
+        return orderItem;
+    }
 }

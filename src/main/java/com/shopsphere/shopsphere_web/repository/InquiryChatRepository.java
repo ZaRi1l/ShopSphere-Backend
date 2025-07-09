@@ -18,4 +18,12 @@ public interface InquiryChatRepository extends JpaRepository<InquiryChat, Long> 
         @Param("chatRoomId") Long chatRoomId, 
         @Param("lastMessageId") Long lastMessageId
     );
+    
+    // 채팅방의 마지막 메시지 조회
+    @Query("SELECT c FROM InquiryChat c WHERE c.chatRoom.id = :chatRoomId ORDER BY c.sentAt DESC, c.id DESC")
+    List<InquiryChat> findLastMessageByChatRoomId(@Param("chatRoomId") Long chatRoomId);
+    
+    // 채팅방 ID 목록에 대한 마지막 메시지 조회 (N+1 문제 방지를 위한 배치 조회)
+    @Query("SELECT c FROM InquiryChat c WHERE c.id IN (SELECT MAX(ic.id) FROM InquiryChat ic WHERE ic.chatRoom.id IN :chatRoomIds GROUP BY ic.chatRoom.id)")
+    List<InquiryChat> findLastMessagesByChatRoomIds(@Param("chatRoomIds") List<Long> chatRoomIds);
 }
