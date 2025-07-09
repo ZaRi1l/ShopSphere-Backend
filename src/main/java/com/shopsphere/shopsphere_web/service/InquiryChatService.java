@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -178,9 +179,36 @@ public class InquiryChatService {
             uniqueRooms.addAll(buyerRooms);
             uniqueRooms.addAll(sellerRooms);
 
+            // 채팅방 ID 목록 추출
+            List<Long> chatRoomIds = uniqueRooms.stream()
+                    .map(InquiryChatRoom::getId)
+                    .collect(Collectors.toList());
+
+            // 모든 채팅방의 마지막 메시지 일괄 조회 (N+1 문제 방지)
+            List<InquiryChat> lastMessages = chatRoomIds.isEmpty() 
+                    ? List.of() 
+                    : chatRepository.findLastMessagesByChatRoomIds(chatRoomIds);
+
+            // 채팅방 ID를 키로 하는 마지막 메시지 맵 생성
+            Map<Long, InquiryChat> lastMessageMap = lastMessages.stream()
+                    .collect(Collectors.toMap(
+                            chat -> chat.getChatRoom().getId(),
+                            chat -> chat,
+                            (existing, replacement) -> existing.getSentAt().isAfter(replacement.getSentAt()) ? existing : replacement
+                    ));
+
             // DTO로 변환하여 반환
             return uniqueRooms.stream()
-                    .map(InquiryChatRoomDto::new)
+                    .map(room -> {
+                        // 채팅방의 마지막 메시지 가져오기
+                        InquiryChat lastMessage = lastMessageMap.get(room.getId());
+                        
+                        // 마지막 메시지가 있으면 두 개의 매개변수를 받는 생성자 사용
+                        // 없으면 InquiryChatRoom만 받는 생성자 사용
+                        return lastMessage != null 
+                                ? new InquiryChatRoomDto(room, lastMessage)
+                                : new InquiryChatRoomDto(room);
+                    })
                     .collect(Collectors.toList());
         } catch (IllegalArgumentException e) {
             throw e; // 이미 처리된 예외는 그대로 전달
