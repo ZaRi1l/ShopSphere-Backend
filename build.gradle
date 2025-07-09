@@ -44,6 +44,8 @@ dependencies {
 	implementation 'javax.annotation:javax.annotation-api:1.3.2'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.session:spring-session-jdbc'  // 세션 관리를 위한 의존성 추가
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'  // WebSocket 지원 추가
+    implementation 'org.springframework:spring-messaging'  // 메시징 지원 추가
 
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
