@@ -89,35 +89,42 @@ jobs:
           target: ~/ShopSphere-Backend
 
 
-      - name: Restart Backend in EC2 (Docker)
+      ############################################################
+      # 7. EC2에 접속하여 Docker로 배포 실행
+      # EC2에서는 전송받은 JAR로 새 Docker 이미지를 빌드하고 컨테이너를 실행합니다.
+      ############################################################
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            echo "--- Restarting Backend ---"
+            echo "--- Navigating to deployment directory ---"
             cd ~/ShopSphere-Backend
 
             CONTAINER_NAME="shopsphere-backend-app"
 
-            # 수정된 부분: docker ps 명령어에 '-a' 옵션 추가
-            # 이제 실행 중이든, 종료되었든 이름이 같은 컨테이너를 모두 찾습니다.
+            echo "--- Stopping and removing existing container (if any) ---"
+            # 실행 중이거나 종료된 상태의 컨테이너를 모두 찾아 강제로 삭제 (가장 확실한 방법)
             if [ "$(sudo docker ps -aq -f name=^/${CONTAINER_NAME}$)" ]; then
-                echo "--- Stopping and Removing Existing Container ---"
-                # '-f' 옵션은 실행 중이 아니면 에러를 내므로, 그냥 rm -f 로 처리하는 것이 더 안전합니다.
-                sudo docker rm -f ${CONTAINER_NAME}
+              sudo docker rm -f ${CONTAINER_NAME}
+            fi
+            
+            # (선택적 안전장치) 포트 충돌 방지를 위한 좀비 컨테이너 정리
+            ZOMBIE_CONTAINER_ID=$(sudo docker ps -aq --filter "publish=8080")
+            if [ -n "$ZOMBIE_CONTAINER_ID" ]; then
+                echo "--- Removing zombie container on port 8080 ---"
+                sudo docker rm -f $ZOMBIE_CONTAINER_ID
             fi
 
             sudo docker system prune -af
 
-            # 이 부분은 그대로 두거나, 더 견고하게 만들 수 있습니다. (아래 추가 설명 참조)
-            ZOMBIE_CONTAINER_ID=$(sudo docker ps -aq --filter "publish=8080")
-            if [ -n "$ZOMBIE_CONTAINER_ID" ]; then
-                echo "--- Removing Zombie Container on port 8080 ---"
-                sudo docker rm -f $ZOMBIE_CONTAINER_ID
-            fi
-
-            echo "--- Building and Running New Docker Container ---"
+            echo "--- Building new Docker image ---"
+            # EC2의 ~/ShopSphere-Backend 폴더에는 app.jar와 Dockerfile이 있어야 합니다.
             sudo docker build --no-cache -t shopsphere-backend .
+            
+            echo "--- Running new Docker container ---"
             sudo docker run -d -p 8080:8080 --name ${CONTAINER_NAME} shopsphere-backend
+            
+            echo "--- Deployment finished ---"
