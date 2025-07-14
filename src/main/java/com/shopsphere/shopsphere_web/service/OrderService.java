@@ -157,8 +157,8 @@ public class OrderService {
         // 3. transactionId가 업데이트된 주문을 다시 저장합니다.
         Order finalOrder = orderRepository.save(savedOrder);
 
-        // 4. 장바구니 비우기 로직은 그대로 유지합니다.
-        cartService.clearCart(userId);
+        // 4. 주문한 상품들만 장바구니에서 제거
+        cartService.removeItems(userId, request.getItems());
 
         // 5. 최종 주문 정보를 DTO로 변환하여 반환합니다.
         // 기존에 사용하시던 convertToResponse 메소드를 호출합니다.

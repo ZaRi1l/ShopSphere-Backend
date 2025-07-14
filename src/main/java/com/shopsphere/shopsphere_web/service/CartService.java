@@ -2,6 +2,7 @@ package com.shopsphere.shopsphere_web.service;
 
 import com.shopsphere.shopsphere_web.dto.CartDTO;
 import com.shopsphere.shopsphere_web.dto.CartItemDTO;
+import com.shopsphere.shopsphere_web.dto.OrderItemDTO;
 import com.shopsphere.shopsphere_web.dto.ProductOptionDTO;
 import com.shopsphere.shopsphere_web.dto.UserDTO;
 import com.shopsphere.shopsphere_web.entity.*;
@@ -165,6 +166,29 @@ public class CartService {
     public void clearCart(String userId) {
         Cart cart = getOrCreateCartEntity(userId);
         cartItemRepository.deleteAll(cartItemRepository.findByCart_Id(cart.getId()));
+    }
+    
+    @Transactional
+    public void removeItems(String userId, List<OrderItemDTO.CreateRequest> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        
+        Cart cart = getOrCreateCartEntity(userId);
+        List<CartItem> cartItems = cartItemRepository.findByCart_Id(cart.getId());
+        
+        for (OrderItemDTO.CreateRequest item : items) {
+            cartItems.stream()
+                .filter(cartItem -> {
+                    boolean productMatches = cartItem.getProduct().getId().equals(item.getProductId());
+                    boolean optionMatches = (item.getOptionId() == null && cartItem.getProductOption() == null) || 
+                                          (item.getOptionId() != null && cartItem.getProductOption() != null && 
+                                           cartItem.getProductOption().getId().equals(item.getOptionId()));
+                    return productMatches && optionMatches;
+                })
+                .findFirst()
+                .ifPresent(cartItem -> cartItemRepository.delete(cartItem));
+        }
     }
 
     private CartDTO.Response convertToResponse(Cart cart) {
