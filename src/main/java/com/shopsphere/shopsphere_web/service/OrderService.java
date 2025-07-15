@@ -387,63 +387,82 @@ public class OrderService {
 
     @Transactional
     public OrderDTO.Response confirmTossPayment(String paymentKey, String tossOrderId, int amount, String userId) {
-        Order order = orderRepository.findByTransactionId(tossOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않거나 이미 처리된 주문 ID 입니다: " + tossOrderId));
-
-        if (!order.getUser().getId().equals(userId)) {
-            throw new SecurityException("주문 정보에 접근할 권한이 없습니다.");
-        }
-
-        if (!order.getTotalAmount().equals(amount)) {
-            throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
-        }
-
-        if ("PAID".equals(order.getOrderStatus())) {
-            System.out.println("이미 결제 완료된 주문입니다. (멱등성 처리): " + tossOrderId);
-            return toOrderResponseDTO(order);
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        String encodedAuth = Base64.getEncoder().encodeToString((tossPaymentsSecretKey + ":").getBytes(StandardCharsets.UTF_8));
-        headers.setBasicAuth(encodedAuth);
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("paymentKey", paymentKey);
-        requestBody.put("orderId", tossOrderId);
-        requestBody.put("amount", amount);
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        System.out.println("--- confirmTossPayment 시작 ---");
+        System.out.println("paymentKey: " + paymentKey + ", tossOrderId: " + tossOrderId + ", amount: " + amount + ", userId: " + userId);
 
         try {
+            System.out.println("[1] 주문 정보 조회 시작: " + tossOrderId);
+            Order order = orderRepository.findByTransactionIdWithDetails(tossOrderId)
+                    .orElseThrow(() -> new IllegalArgumentException("DB에서 주문을 찾을 수 없습니다. ID: " + tossOrderId));
+            System.out.println("[1] 주문 정보 조회 성공! Order ID: " + order.getId());
+
+            System.out.println("[2] 주문자 권한 및 금액 검증 시작");
+            if (!order.getUser().getId().equals(userId)) {
+                throw new SecurityException("주문 정보에 접근할 권한이 없습니다.");
+            }
+            if (order.getTotalAmount() != amount) { // Integer 비교는 equals가 더 안전하지만, 여기선 ==도 가능
+                throw new IllegalArgumentException("결제 금액이 일치하지 않습니다. 요청된 금액: " + amount + ", 주문 금액: " + order.getTotalAmount());
+            }
+            System.out.println("[2] 검증 성공!");
+
+            System.out.println("[3] 토스페이먼츠 API 호출 준비");
+            HttpHeaders headers = new HttpHeaders();
+            String encodedAuth = Base64.getEncoder().encodeToString((tossPaymentsSecretKey + ":").getBytes(StandardCharsets.UTF_8));
+            headers.setBasicAuth(encodedAuth);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("paymentKey", paymentKey);
+            requestBody.put("orderId", tossOrderId);
+            requestBody.put("amount", amount);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            System.out.println("[3] API 호출 준비 완료");
+
+            System.out.println("[4] 토스페이먼츠 API 호출 시작");
             ResponseEntity<TossPaymentResponseDTO> responseEntity = restTemplate.postForEntity(
                     tossPaymentsBaseUrl + "/v1/payments/confirm",
                     entity,
                     TossPaymentResponseDTO.class
             );
+            System.out.println("[4] API 호출 성공! 응답 코드: " + responseEntity.getStatusCode());
 
             if (responseEntity.getStatusCode().is2xxSuccessful() && responseEntity.getBody() != null) {
                 TossPaymentResponseDTO tossResponse = responseEntity.getBody();
+                System.out.println("[5] 주문 상태 업데이트 시작");
 
                 order.setOrderStatus("COMPLETED");
                 order.setPaymentMethod(tossResponse.getMethod());
-                order.setTransactionId(tossResponse.getPaymentKey());
+                order.setPaymentKey(tossResponse.getPaymentKey());
 
                 Order savedOrder = orderRepository.save(order);
+                System.out.println("[5] 주문 상태 업데이트 및 저장 성공! Order ID: " + savedOrder.getId());
 
-                return toOrderResponseDTO(savedOrder);
+                System.out.println("[6] DTO 변환 시작");
+                OrderDTO.Response responseDTO = convertToResponse(savedOrder, userId);
+                System.out.println("[6] DTO 변환 성공");
+
+                System.out.println("--- confirmTossPayment 정상 종료 ---");
+                return responseDTO;
+
             } else {
+                System.err.println("토스 API 응답 오류: 코드는 2xx 이나 바디가 없거나 문제가 있음");
                 throw new RuntimeException("토스페이먼츠 최종 결제 승인에 실패했습니다. 응답 코드: " + responseEntity.getStatusCode());
             }
+
+        } catch (IllegalArgumentException | SecurityException e) {
+            System.err.println("!!! 유효성 검증 실패 !!!");
+            e.printStackTrace(); // 콘솔에 에러 로그 출력
+            throw e; // 예외를 다시 던져서 Controller에서 처리하도록 함
         } catch (HttpClientErrorException e) {
-            try {
-                Map<String, String> errorMap = objectMapper.readValue(e.getResponseBodyAsString(), Map.class);
-                String errorMessage = errorMap.getOrDefault("message", "알 수 없는 오류가 발생했습니다.");
-                throw new IllegalArgumentException("결제 승인 실패: " + errorMessage);
-            } catch (Exception jsonEx) {
-                throw new RuntimeException("결제 승인 중 오류가 발생했습니다.", e);
-            }
+            System.err.println("!!! 토스 API 호출 실패 (HttpClientErrorException) !!!");
+            System.err.println("응답 코드: " + e.getStatusCode());
+            System.err.println("응답 바디: " + e.getResponseBodyAsString());
+            e.printStackTrace();
+            throw new RuntimeException("결제 승인 중 API 오류가 발생했습니다: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
+            System.err.println("!!! 알 수 없는 예외 발생 !!!");
+            e.printStackTrace(); // 모든 예외의 스택 트레이스를 콘솔에 출력!
             throw new RuntimeException("결제 승인 중 예상치 못한 오류가 발생했습니다.", e);
         }
     }
@@ -461,6 +480,7 @@ public class OrderService {
         dto.setPaymentMethod(order.getPaymentMethod());
         dto.setTransactionId(order.getTransactionId());
         dto.setCreatedAt(order.getCreatedAt());
+        dto.setPaymentKey(order.getPaymentKey());
 
         // User 정보 변환 (null 체크 포함)
         if (order.getUser() != null) {

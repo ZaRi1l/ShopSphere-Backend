@@ -41,6 +41,9 @@ public class Order {
     @Column(name = "transaction_id", columnDefinition = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String transactionId;
 
+    @Column(name = "payment_key", unique = true, columnDefinition = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+    private String paymentKey;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

@@ -36,6 +36,7 @@ public class OrderDTO {
         private Integer totalAmount;
         private String paymentMethod;
         private String transactionId;
+        private String paymentKey;
         private List<OrderItemDTO.Response> items;
         private LocalDateTime createdAt;
     }
