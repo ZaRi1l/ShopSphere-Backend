@@ -59,4 +59,8 @@ public class Product {
     // 대표 이미지 URL 필드는 ProductImage로 통합 관리한다면 제거. 여기서는 유지한다고 가정.
     @Column(name = "image_url", columnDefinition = "VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String imageUrl;
+
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY 로딩 유지
+    @JoinColumn(name = "seller_id", nullable = true)
+    private User seller;
 }

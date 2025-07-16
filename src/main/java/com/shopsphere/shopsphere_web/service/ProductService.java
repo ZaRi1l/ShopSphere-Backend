@@ -41,13 +41,14 @@ public class ProductService {
         ProductCategory category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다: " + request.getCategoryId()));
 
-        Product product = Product.builder()
+            Product product = Product.builder()
                 .category(category)
                 .name(request.getName())
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .stockQuantity(request.getStockQuantity())
-                .user(seller)
+                .user(seller)      // user 필드 설정
+                .seller(seller)    // <<< 이 부분을 추가하여 seller 필드에도 동일한 User 객체를 설정합니다.
                 .salesVolume(0)
                 .createdAt(LocalDateTime.now())
                 .images(new ArrayList<>()) // 이미지 리스트 초기화
